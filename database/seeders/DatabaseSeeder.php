@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             CarrierSeeder::class,
             LocationSeeder::class,
+            ShipmentSeeder::class,
         ]);
     }
 }
