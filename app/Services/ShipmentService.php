@@ -6,11 +6,39 @@ use App\Models\Shipment;
 use App\Models\ShipmentItem;
 use App\Models\User;
 use Carbon\Carbon;
+use DomainException;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class ShipmentService
 {
+    /**
+     * State Machine: Permitted forward status transitions.
+     * CREATED -> BOOKED -> PICKED_UP -> IN_TRANSIT -> DELIVERED
+     * DELIVERED is terminal.
+     */
+    public const ALLOWED_TRANSITIONS = [
+        'CREATED' => ['BOOKED'],
+        'BOOKED' => ['PICKED_UP'],
+        'PICKED_UP' => ['IN_TRANSIT'],
+        'IN_TRANSIT' => ['DELIVERED'],
+        'DELIVERED' => [],
+    ];
+
+    /**
+     * Macro status to primary tracking event type mapping.
+     */
+    public const STATUS_EVENT_MAP = [
+        'BOOKED' => 'BOOKING_CONFIRMED',
+        'PICKED_UP' => 'PICKED_UP',
+        'IN_TRANSIT' => 'DEPARTED',
+        'DELIVERED' => 'DELIVERED',
+    ];
+
+    public function __construct(
+        protected TrackingService $trackingService
+    ) {}
+
     /**
      * Generate a unique standardized shipment tracking number.
      * Format: CT-YYYYMMDD-XXXX (e.g. CT-20261109-0001)
@@ -35,7 +63,7 @@ class ShipmentService
     }
 
     /**
-     * Create a new shipment with atomic cargo items creation.
+     * Create a new shipment with atomic cargo items creation and initial ORDER_CREATED tracking event.
      *
      * @param array $data Shipment data
      * @param User $creator The operator/admin user registering the shipment
@@ -96,7 +124,78 @@ class ShipmentService
                 $shipment->recalculateTotals();
             }
 
-            return $shipment->fresh(['items', 'customer', 'carrier', 'origin', 'destination']);
+            // 4. Record initial ORDER_CREATED tracking event atomically
+            $this->trackingService->recordEvent($shipment, [
+                'event_type' => 'ORDER_CREATED',
+                'event_time' => Carbon::now(),
+                'location_id' => $data['origin_id'] ?? null,
+                'description' => 'Shipment order registered in CargoTrace system.',
+            ], $creator);
+
+            return $shipment->fresh(['items', 'customer', 'carrier', 'origin', 'destination', 'trackingEvents']);
+        });
+    }
+
+    /**
+     * Single Source of Truth for Shipment Status Transitions.
+     * Enforces linear lifecycle validation, records corresponding event, and updates shipment atomically.
+     *
+     * @param Shipment $shipment
+     * @param string $newStatus The target status (BOOKED, PICKED_UP, IN_TRANSIT, DELIVERED)
+     * @param array $eventData Event metadata (description, location_id, latitude, longitude, weather_condition, weather_temp_c, event_time)
+     * @param User $actor The user authorizing the transition
+     * @return Shipment
+     * @throws DomainException
+     */
+    public function transitionTo(Shipment $shipment, string $newStatus, array $eventData, User $actor): Shipment
+    {
+        $newStatus = strtoupper($newStatus);
+        $currentStatus = $shipment->current_status;
+
+        // 1. Verify terminal status
+        if ($currentStatus === 'DELIVERED') {
+            throw new DomainException("Cannot transition shipment {$shipment->shipment_number}. DELIVERED is a terminal status and cannot be modified.");
+        }
+
+        // 2. Validate linear state transition
+        $allowed = self::ALLOWED_TRANSITIONS[$currentStatus] ?? [];
+        if (! in_array($newStatus, $allowed, true)) {
+            $allowedList = empty($allowed) ? 'None' : implode(', ', $allowed);
+            throw new DomainException("Invalid status transition from [{$currentStatus}] to [{$newStatus}]. Allowed next status: [{$allowedList}].");
+        }
+
+        return DB::transaction(function () use ($shipment, $newStatus, $eventData, $actor) {
+            $eventTime = isset($eventData['event_time']) ? Carbon::parse($eventData['event_time']) : Carbon::now();
+
+            $updateData = [
+                'current_status' => $newStatus,
+            ];
+
+            // If DELIVERED, lock actual arrival time
+            if ($newStatus === 'DELIVERED') {
+                $updateData['actual_arrival'] = $eventTime;
+                $updateData['current_location_id'] = $shipment->destination_id;
+            } elseif (! empty($eventData['location_id'])) {
+                $updateData['current_location_id'] = $eventData['location_id'];
+            }
+
+            $shipment->update($updateData);
+
+            // Determine matching tracking event type
+            $eventType = $eventData['event_type'] ?? (self::STATUS_EVENT_MAP[$newStatus] ?? 'IN_TRANSIT');
+
+            $this->trackingService->recordEvent($shipment, [
+                'event_type' => $eventType,
+                'event_time' => $eventTime,
+                'location_id' => $eventData['location_id'] ?? $shipment->current_location_id,
+                'latitude' => $eventData['latitude'] ?? null,
+                'longitude' => $eventData['longitude'] ?? null,
+                'description' => $eventData['description'] ?? "Shipment status transitioned to {$newStatus}.",
+                'weather_condition' => $eventData['weather_condition'] ?? null,
+                'weather_temp_c' => $eventData['weather_temp_c'] ?? null,
+            ], $actor);
+
+            return $shipment->fresh(['trackingEvents', 'currentLocation']);
         });
     }
 
