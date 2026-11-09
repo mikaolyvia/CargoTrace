@@ -16,11 +16,13 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            SystemSettingSeeder::class,
             UserSeeder::class,
             CarrierSeeder::class,
             LocationSeeder::class,
             ShipmentSeeder::class,
             TrackingEventSeeder::class,
+            ShipmentExceptionSeeder::class,
         ]);
     }
 }
