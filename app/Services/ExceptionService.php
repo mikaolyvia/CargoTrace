@@ -110,6 +110,10 @@ class ExceptionService
      */
     public function investigateException(ShipmentException $exception, User $operator, ?string $notes = null): ShipmentException
     {
+        if ($exception->isResolved()) {
+            throw new \DomainException("Cannot investigate exception #{$exception->id}. The exception is already RESOLVED and cannot directly return to INVESTIGATING.");
+        }
+
         return DB::transaction(function () use ($exception, $operator, $notes) {
             $exception->update([
                 'status' => ShipmentException::STATUS_INVESTIGATING,

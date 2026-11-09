@@ -89,9 +89,31 @@ class TrackingService
             $event = $this->recordEvent($shipment, $data, $actor);
 
             if (! empty($data['location_id'])) {
-                $shipment->update([
-                    'current_location_id' => $data['location_id'],
-                ]);
+                // Determine whether this newly logged event is chronologically the latest location event
+                $latestLocationEvent = $shipment->trackingEvents()
+                    ->whereNotNull('location_id')
+                    ->where('id', '!=', $event->id)
+                    ->orderByDesc('event_time')
+                    ->orderByDesc('id')
+                    ->first();
+
+                $isLatest = false;
+                if (! $latestLocationEvent) {
+                    $isLatest = true;
+                } else {
+                    if ($event->event_time->gt($latestLocationEvent->event_time)) {
+                        $isLatest = true;
+                    } elseif ($event->event_time->equalTo($latestLocationEvent->event_time)) {
+                        $isLatest = $event->id >= $latestLocationEvent->id;
+                    }
+                }
+
+                // Only update current_location_id if this event is latest (prevents backdated events from overwriting)
+                if ($isLatest) {
+                    $shipment->update([
+                        'current_location_id' => $data['location_id'],
+                    ]);
+                }
             }
 
             return $event;
