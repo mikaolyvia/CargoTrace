@@ -53,4 +53,12 @@ class Carrier extends Model
     {
         return $this->hasMany(Shipment::class);
     }
+
+    /**
+     * Get the vessels fleet operated by this carrier.
+     */
+    public function vessels(): HasMany
+    {
+        return $this->hasMany(Vessel::class);
+    }
 }

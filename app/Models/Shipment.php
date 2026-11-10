@@ -21,15 +21,19 @@ class Shipment extends Model
      */
     protected $fillable = [
         'shipment_number',
+        'container_number',
         'customer_id',
         'created_by',
         'carrier_id',
+        'vessel_id',
         'origin_id',
         'destination_id',
         'current_location_id',
         'cargo_type',
         'total_weight_kg',
         'total_volume_cbm',
+        'total_declared_value',
+        'currency',
         'current_status',
         'expected_departure',
         'expected_arrival',
@@ -56,6 +60,7 @@ class Shipment extends Model
             'delay_hours' => 'float',
             'total_weight_kg' => 'float',
             'total_volume_cbm' => 'float',
+            'total_declared_value' => 'float',
         ];
     }
 
@@ -81,6 +86,14 @@ class Shipment extends Model
     public function carrier(): BelongsTo
     {
         return $this->belongsTo(Carrier::class, 'carrier_id');
+    }
+
+    /**
+     * Assigned ocean cargo vessel.
+     */
+    public function vessel(): BelongsTo
+    {
+        return $this->belongsTo(Vessel::class, 'vessel_id');
     }
 
     /**
@@ -148,9 +161,16 @@ class Shipment extends Model
 
         $totalWeight = 0.0;
         $totalVolume = 0.0;
+        $totalValue = 0.0;
 
         foreach ($this->items as $item) {
             $totalWeight += $item->quantity * (float) $item->weight_kg;
+
+            $itemTotalPrice = $item->total_price > 0 ? (float) $item->total_price : ($item->quantity * (float) ($item->unit_price ?? 0.0));
+            if ($item->total_price <= 0 && ($item->unit_price ?? 0) > 0) {
+                $item->update(['total_price' => $itemTotalPrice]);
+            }
+            $totalValue += $itemTotalPrice;
 
             if ($item->length_cm && $item->width_cm && $item->height_cm &&
                 $item->length_cm > 0 && $item->width_cm > 0 && $item->height_cm > 0) {
@@ -162,7 +182,24 @@ class Shipment extends Model
         $this->update([
             'total_weight_kg' => round($totalWeight, 2),
             'total_volume_cbm' => round($totalVolume, 4),
+            'total_declared_value' => round($totalValue, 2),
         ]);
+    }
+
+    /**
+     * Check if shipment is marked as delayed.
+     */
+    public function isDelayed(): bool
+    {
+        return (bool) $this->is_delayed;
+    }
+
+    /**
+     * Convenient alias accessor for shipment_number.
+     */
+    public function getTrackingNumberAttribute(): string
+    {
+        return $this->shipment_number;
     }
 
     /**

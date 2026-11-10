@@ -32,5 +32,8 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="OPEN_METEO_ENABLED" value="false"/>
+        <env name="OPEN_METEO_TIMEOUT" value="1"/>
+        <env name="OPEN_METEO_CONNECT_TIMEOUT" value="1"/>
     </php>
 </phpunit>

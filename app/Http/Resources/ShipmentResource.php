@@ -17,6 +17,19 @@ class ShipmentResource extends JsonResource
         return [
             'id' => $this->id,
             'shipment_number' => $this->shipment_number,
+            'container_number' => $this->container_number,
+            'vessel_id' => $this->vessel_id,
+            'vessel' => $this->whenLoaded('vessel', function () {
+                return [
+                    'id' => $this->vessel->id,
+                    'name' => $this->vessel->name,
+                    'imo_number' => $this->vessel->imo_number,
+                    'mmsi' => $this->vessel->mmsi,
+                    'flag_country' => $this->vessel->flag_country,
+                    'capacity_teu' => $this->vessel->capacity_teu,
+                    'status' => $this->vessel->status,
+                ];
+            }),
             'customer' => $this->whenLoaded('customer', function () {
                 return [
                     'id' => $this->customer->id,

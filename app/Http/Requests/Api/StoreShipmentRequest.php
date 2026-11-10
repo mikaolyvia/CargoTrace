@@ -22,6 +22,8 @@ class StoreShipmentRequest extends BaseApiRequest
                 }),
             ],
             'carrier_id' => ['required', 'integer', 'exists:carriers,id'],
+            'vessel_id' => ['nullable', 'integer', 'exists:vessels,id'],
+            'container_number' => ['nullable', 'string', 'max:50'],
             'origin_id' => ['required', 'integer', 'exists:locations,id'],
             'destination_id' => ['required', 'integer', 'exists:locations,id', 'different:origin_id'],
             'cargo_type' => ['required', 'string', Rule::in(['GENERAL', 'PERISHABLE', 'HAZARDOUS', 'ELECTRONICS', 'OVERSIZED'])],

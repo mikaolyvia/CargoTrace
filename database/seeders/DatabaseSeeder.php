@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             SystemSettingSeeder::class,
             UserSeeder::class,
             CarrierSeeder::class,
+            VesselSeeder::class,
             LocationSeeder::class,
             ShipmentSeeder::class,
             TrackingEventSeeder::class,

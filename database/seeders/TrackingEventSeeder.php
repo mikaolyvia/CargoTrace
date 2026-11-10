@@ -70,31 +70,33 @@ class TrackingEventSeeder extends Seeder
             ], $operator);
         }
 
-        // 3. Shipment 3: Jakarta Airport -> Singapore Changi (Progressed to IN_TRANSIT with Waypoint)
+        // 3. Shipment 3: Jakarta Port -> Singapore Port (Progressed to IN_TRANSIT with Ocean Waypoint)
         $shipment3 = Shipment::where('shipment_number', 'CT-20261109-0003')->first();
+        $jakartaPort = Location::where('code', 'IDJKT')->first();
+
         if ($shipment3 && $shipment3->trackingEvents()->count() === 0) {
             // Event 1: ORDER_CREATED
             $trackingService->recordEvent($shipment3, [
                 'event_type' => 'ORDER_CREATED',
                 'event_time' => Carbon::now()->subHours(18),
-                'location_id' => $jakartaAirport->id,
-                'description' => 'Air freight airway bill created for precision semiconductor shipment.',
+                'location_id' => $jakartaPort?->id,
+                'description' => 'Ocean bill of lading issued for containerized semiconductor cargo.',
             ], $operator);
 
             // Event 2: BOOKED
             $shipmentService->transitionTo($shipment3, 'BOOKED', [
                 'event_type' => 'BOOKING_CONFIRMED',
                 'event_time' => Carbon::now()->subHours(14),
-                'location_id' => $jakartaAirport->id,
-                'description' => 'Air cargo manifest confirmed on Singapore Airlines Cargo flight.',
+                'location_id' => $jakartaPort?->id,
+                'description' => 'Container booking confirmed on MSC Gülsün feeder service.',
             ], $operator);
 
             // Event 3: PICKED_UP
             $shipmentService->transitionTo($shipment3, 'PICKED_UP', [
                 'event_type' => 'PICKED_UP',
                 'event_time' => Carbon::now()->subHours(8),
-                'location_id' => $jakartaAirport->id,
-                'description' => 'Unit Load Device (ULD) loaded into temperature-controlled airport warehouse.',
+                'location_id' => $jakartaPort?->id,
+                'description' => '40ft container loaded and lashed on vessel deck at Tanjung Priok Berth 102.',
                 'weather_condition' => 'Clear Sky',
                 'weather_temp_c' => 30.0,
             ], $operator);
@@ -103,18 +105,18 @@ class TrackingEventSeeder extends Seeder
             $shipmentService->transitionTo($shipment3, 'IN_TRANSIT', [
                 'event_type' => 'DEPARTED',
                 'event_time' => Carbon::now()->subHours(3),
-                'location_id' => $jakartaAirport->id,
-                'description' => 'Cargo aircraft departed from Soekarno-Hatta International Airport.',
+                'location_id' => $jakartaPort?->id,
+                'description' => 'Vessel departed Tanjung Priok Port, heading north into Java Sea lane.',
             ], $operator);
 
-            // Event 5: Intermediate Flight Checkpoint (Does NOT change macro status)
+            // Event 5: Intermediate Maritime Checkpoint (Does NOT change macro status)
             $trackingService->recordIntermediateEvent($shipment3, 'IN_TRANSIT', [
                 'event_time' => Carbon::now()->subHours(1),
                 'latitude' => -1.2500000,
                 'longitude' => 105.1000000,
-                'description' => 'Aircraft transiting waypoint over Java Sea corridor. Altitude 32,000 ft.',
-                'weather_condition' => 'High Altitude Clear',
-                'weather_temp_c' => -10.0,
+                'description' => 'Vessel underway using engine, transiting Bangka Strait shipping corridor. Speed 15.4 knots.',
+                'weather_condition' => 'Fair Sea Conditions',
+                'weather_temp_c' => 29.5,
             ], $operator);
         }
     }

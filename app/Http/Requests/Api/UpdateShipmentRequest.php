@@ -15,6 +15,8 @@ class UpdateShipmentRequest extends BaseApiRequest
     {
         return [
             'carrier_id' => ['sometimes', 'required', 'integer', 'exists:carriers,id'],
+            'vessel_id' => ['sometimes', 'nullable', 'integer', 'exists:vessels,id'],
+            'container_number' => ['sometimes', 'nullable', 'string', 'max:50'],
             'origin_id' => ['sometimes', 'required', 'integer', 'exists:locations,id'],
             'destination_id' => ['sometimes', 'required', 'integer', 'exists:locations,id', 'different:origin_id'],
             'cargo_type' => ['sometimes', 'required', 'string', Rule::in(['GENERAL', 'PERISHABLE', 'HAZARDOUS', 'ELECTRONICS', 'OVERSIZED'])],

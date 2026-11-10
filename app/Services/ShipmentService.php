@@ -36,8 +36,13 @@ class ShipmentService
     ];
 
     public function __construct(
-        protected TrackingService $trackingService
-    ) {}
+        protected TrackingService $trackingService,
+        protected ?AuditService $auditService = null,
+        protected ?NotificationService $notificationService = null
+    ) {
+        $this->auditService = $auditService ?? app(AuditService::class);
+        $this->notificationService = $notificationService ?? app(NotificationService::class);
+    }
 
     /**
      * Generate a unique standardized shipment tracking number.
@@ -132,6 +137,20 @@ class ShipmentService
                 'description' => 'Shipment order registered in CargoTrace system.',
             ], $creator);
 
+            // 5. Audit log and customer notification
+            $this->auditService->log('SHIPMENT_CREATED', $shipment, null, [
+                'shipment_number' => $shipment->shipment_number,
+                'customer_id' => $shipment->customer_id,
+                'carrier_id' => $shipment->carrier_id,
+            ], $creator);
+
+            $this->notificationService->sendToShipmentCustomer(
+                $shipment,
+                'Pengiriman Baru Terdaftar',
+                "Pengiriman {$shipment->shipment_number} berhasil didaftarkan dalam sistem.",
+                'INFO'
+            );
+
             return $shipment->fresh(['items', 'customer', 'carrier', 'origin', 'destination', 'trackingEvents']);
         });
     }
@@ -164,7 +183,7 @@ class ShipmentService
             throw new DomainException("Invalid status transition from [{$currentStatus}] to [{$newStatus}]. Allowed next status: [{$allowedList}].");
         }
 
-        return DB::transaction(function () use ($shipment, $newStatus, $eventData, $actor) {
+        return DB::transaction(function () use ($shipment, $newStatus, $eventData, $actor, $currentStatus) {
             $eventTime = isset($eventData['event_time']) ? Carbon::parse($eventData['event_time']) : Carbon::now();
 
             $updateData = [
@@ -194,6 +213,20 @@ class ShipmentService
                 'weather_condition' => $eventData['weather_condition'] ?? null,
                 'weather_temp_c' => $eventData['weather_temp_c'] ?? null,
             ], $actor);
+
+            // Audit log and customer notification
+            $this->auditService->log('STATUS_TRANSITION', $shipment, [
+                'current_status' => $currentStatus,
+            ], [
+                'current_status' => $newStatus,
+            ], $actor);
+
+            $this->notificationService->sendToShipmentCustomer(
+                $shipment,
+                "Status Pengiriman Diperbarui: {$newStatus}",
+                "Status pengiriman {$shipment->shipment_number} telah beralih ke {$newStatus}.",
+                $newStatus === 'DELIVERED' ? 'SUCCESS' : 'INFO'
+            );
 
             return $shipment->fresh(['trackingEvents', 'currentLocation']);
         });

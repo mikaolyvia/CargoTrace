@@ -23,6 +23,8 @@ class ShipmentItem extends Model
         'hs_code',
         'quantity',
         'weight_kg',
+        'unit_price',
+        'total_price',
         'length_cm',
         'width_cm',
         'height_cm',
@@ -38,6 +40,8 @@ class ShipmentItem extends Model
         return [
             'quantity' => 'integer',
             'weight_kg' => 'float',
+            'unit_price' => 'float',
+            'total_price' => 'float',
             'length_cm' => 'float',
             'width_cm' => 'float',
             'height_cm' => 'float',

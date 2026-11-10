@@ -13,8 +13,13 @@ class ExceptionService
 {
     public function __construct(
         protected EtaService $etaService,
-        protected TrackingService $trackingService
-    ) {}
+        protected TrackingService $trackingService,
+        protected ?AuditService $auditService = null,
+        protected ?NotificationService $notificationService = null
+    ) {
+        $this->auditService = $auditService ?? app(AuditService::class);
+        $this->notificationService = $notificationService ?? app(NotificationService::class);
+    }
 
     /**
      * Report an operational exception on a shipment with transactional tracking event & delta ETA update.
@@ -67,6 +72,22 @@ class ExceptionService
             if ($impactHours > 0) {
                 $this->etaService->adjustEta($shipment, $impactHours);
             }
+
+            // 4. Audit log and customer notification
+            $this->auditService->log('EXCEPTION_REPORTED', $exception, null, [
+                'shipment_id' => $shipment->id,
+                'exception_type' => $type,
+                'severity' => $severity,
+                'impact_hours' => $impactHours,
+            ], $reporter);
+
+            $this->notificationService->sendToShipmentCustomer(
+                $shipment,
+                "Gangguan Pengiriman: {$type}",
+                "Pengiriman {$shipment->shipment_number} mengalami gangguan {$type} dengan tingkat keparahan {$severity}.",
+                $severity === 'CRITICAL' ? 'DANGER' : 'WARNING',
+                ['exception_id' => $exception->id]
+            );
 
             return $exception->fresh(['shipment', 'trackingEvent', 'reporter']);
         });
@@ -159,6 +180,22 @@ class ExceptionService
                 'event_time' => $now,
                 'description' => "EXCEPTION RESOLVED: [{$exception->exception_type}] - " . ($data['resolution_notes'] ?? 'Resolved.'),
             ], $resolver);
+
+            // Audit log and customer notification
+            $this->auditService->log('EXCEPTION_RESOLVED', $exception, [
+                'status' => ShipmentException::STATUS_OPEN,
+            ], [
+                'status' => ShipmentException::STATUS_RESOLVED,
+                'resolved_by' => $resolver->id,
+            ], $resolver);
+
+            $this->notificationService->sendToShipmentCustomer(
+                $exception->shipment,
+                "Gangguan Pengiriman Telah Diselesaikan",
+                "Gangguan [{$exception->exception_type}] pada pengiriman {$exception->shipment->shipment_number} telah diselesaikan.",
+                'SUCCESS',
+                ['exception_id' => $exception->id]
+            );
 
             return $exception->fresh(['shipment', 'resolver']);
         });

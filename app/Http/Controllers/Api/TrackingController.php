@@ -25,6 +25,7 @@ class TrackingController extends Controller
     {
         Gate::authorize('view', $shipment);
 
+        $shipment->loadMissing(['vessel', 'carrier']);
         $order = $request->query('order', 'asc');
         $timeline = $this->trackingService->getTimeline($shipment, $order);
         $routePoints = $this->trackingService->getMapRoutePoints($shipment);
@@ -34,6 +35,14 @@ class TrackingController extends Controller
             'data' => [
                 'shipment_id' => $shipment->id,
                 'shipment_number' => $shipment->shipment_number,
+                'container_number' => $shipment->container_number,
+                'vessel' => $shipment->vessel ? [
+                    'id' => $shipment->vessel->id,
+                    'name' => $shipment->vessel->name,
+                    'imo_number' => $shipment->vessel->imo_number,
+                    'flag_country' => $shipment->vessel->flag_country,
+                    'status' => $shipment->vessel->status,
+                ] : null,
                 'current_status' => $shipment->current_status,
                 'route_points' => $routePoints,
                 'timeline' => TrackingEventResource::collection($timeline),

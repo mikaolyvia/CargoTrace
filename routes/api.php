@@ -1,11 +1,16 @@
 <?php
 
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CarrierController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ExceptionController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ShipmentController;
 use App\Http\Controllers\Api\TrackingController;
+use App\Http\Controllers\Api\VesselController;
+use App\Http\Controllers\Api\VesselIntegrationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -30,6 +35,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // Master Data (Read-only for authenticated roles)
     Route::get('/carriers', [CarrierController::class, 'index'])->name('api.carriers.index');
     Route::get('/locations', [LocationController::class, 'index'])->name('api.locations.index');
+    Route::get('/ports', [LocationController::class, 'index'])->name('api.ports.index');
+    Route::get('/vessels', [VesselController::class, 'index'])->name('api.vessels.index');
+    Route::get('/vessels/{vessel}', [VesselController::class, 'show'])->name('api.vessels.show');
+    Route::get('/vessels/{vessel}/positions', [VesselController::class, 'positions'])->name('api.vessels.positions');
+
+    // External Integration (Python AIS Data Collector & IoT telemetry)
+    Route::post('/integrations/vessel-positions', [VesselIntegrationController::class, 'updatePosition'])
+        ->middleware('role:ADMIN,OPERATOR')
+        ->name('api.integrations.vessel_positions');
 
     // Shipments
     Route::get('/shipments', [ShipmentController::class, 'index'])->name('api.shipments.index');
@@ -64,4 +78,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/exceptions/{exception}/resolve', [ExceptionController::class, 'resolve'])
         ->middleware('role:ADMIN,OPERATOR')
         ->name('api.exceptions.resolve');
+
+    // Dashboard Metrics
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('api.dashboard');
+
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('api.notifications.index');
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('api.notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('api.notifications.read_all');
+
+    // Audit Logs (Admin & Operator only)
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])
+        ->middleware('role:ADMIN,OPERATOR')
+        ->name('api.audit_logs.index');
 });

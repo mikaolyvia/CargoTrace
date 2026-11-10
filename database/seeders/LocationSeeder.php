@@ -10,7 +10,7 @@ class LocationSeeder extends Seeder
     /**
      * Run the database seeds.
      * Seeds major international ports, airports, and hubs with precise coordinates
-     * for Leaflet.js mapping and routing.
+     * and local currency for Leaflet.js mapping, routing, and valuation.
      */
     public function run(): void
     {
@@ -21,6 +21,8 @@ class LocationSeeder extends Seeder
                 'type' => 'PORT',
                 'city' => 'Jakarta',
                 'country' => 'Indonesia',
+                'currency_code' => 'IDR',
+                'currency_symbol' => 'Rp',
                 'latitude' => -6.1018000,
                 'longitude' => 106.8833000,
             ],
@@ -30,6 +32,8 @@ class LocationSeeder extends Seeder
                 'type' => 'PORT',
                 'city' => 'Singapore',
                 'country' => 'Singapore',
+                'currency_code' => 'SGD',
+                'currency_symbol' => 'S$',
                 'latitude' => 1.2644000,
                 'longitude' => 103.8222000,
             ],
@@ -39,6 +43,8 @@ class LocationSeeder extends Seeder
                 'type' => 'PORT',
                 'city' => 'Rotterdam',
                 'country' => 'Netherlands',
+                'currency_code' => 'EUR',
+                'currency_symbol' => '€',
                 'latitude' => 51.9547000,
                 'longitude' => 4.1486000,
             ],
@@ -48,6 +54,8 @@ class LocationSeeder extends Seeder
                 'type' => 'PORT',
                 'city' => 'Shanghai',
                 'country' => 'China',
+                'currency_code' => 'CNY',
+                'currency_symbol' => '¥',
                 'latitude' => 31.2304000,
                 'longitude' => 121.4737000,
             ],
@@ -57,8 +65,21 @@ class LocationSeeder extends Seeder
                 'type' => 'PORT',
                 'city' => 'Hamburg',
                 'country' => 'Germany',
+                'currency_code' => 'EUR',
+                'currency_symbol' => '€',
                 'latitude' => 53.5320000,
                 'longitude' => 9.9700000,
+            ],
+            [
+                'code' => 'JPTYO',
+                'name' => 'Port of Tokyo',
+                'type' => 'PORT',
+                'city' => 'Tokyo',
+                'country' => 'Japan',
+                'currency_code' => 'JPY',
+                'currency_symbol' => '¥',
+                'latitude' => 35.6190000,
+                'longitude' => 139.7890000,
             ],
             [
                 'code' => 'CGK',
@@ -66,6 +87,8 @@ class LocationSeeder extends Seeder
                 'type' => 'AIRPORT',
                 'city' => 'Jakarta',
                 'country' => 'Indonesia',
+                'currency_code' => 'IDR',
+                'currency_symbol' => 'Rp',
                 'latitude' => -6.1275000,
                 'longitude' => 106.6537000,
             ],
@@ -75,6 +98,8 @@ class LocationSeeder extends Seeder
                 'type' => 'AIRPORT',
                 'city' => 'Singapore',
                 'country' => 'Singapore',
+                'currency_code' => 'SGD',
+                'currency_symbol' => 'S$',
                 'latitude' => 1.3644000,
                 'longitude' => 103.9915000,
             ],
@@ -84,6 +109,8 @@ class LocationSeeder extends Seeder
                 'type' => 'AIRPORT',
                 'city' => 'Amsterdam',
                 'country' => 'Netherlands',
+                'currency_code' => 'EUR',
+                'currency_symbol' => '€',
                 'latitude' => 52.3105000,
                 'longitude' => 4.7683000,
             ],
