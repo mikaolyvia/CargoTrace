@@ -4,9 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\Location;
 use App\Models\Shipment;
+use App\Models\TrackingEvent;
 use App\Models\User;
-use App\Services\ShipmentService;
-use App\Services\TrackingService;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 
@@ -14,110 +13,105 @@ class TrackingEventSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     * Seeds realistic chronological tracking events for demo shipments.
+     * Seeds rich, chronological tracking events for all demo shipments.
      */
     public function run(): void
     {
         $operator = User::where('email', 'operator@cargotrace.com')->first();
-        $shipmentService = app(ShipmentService::class);
-        $trackingService = app(TrackingService::class);
+        $shipments = Shipment::with(['origin', 'destination', 'vessel'])->get();
 
-        $jakartaPort = Location::where('code', 'IDJKT')->first();
-        $singaporePort = Location::where('code', 'SGSIN')->first();
-        $jakartaAirport = Location::where('code', 'CGK')->first();
-        $changiAirport = Location::where('code', 'SIN')->first();
+        foreach ($shipments as $shipment) {
+            // If already has tracking events, skip to avoid duplicates
+            if ($shipment->trackingEvents()->count() > 0) {
+                continue;
+            }
 
-        // 1. Shipment 1: Jakarta -> Rotterdam (Just created)
-        $shipment1 = Shipment::where('shipment_number', 'CT-20261109-0001')->first();
-        if ($shipment1 && $shipment1->trackingEvents()->count() === 0) {
-            $trackingService->recordEvent($shipment1, [
+            $departure = $shipment->expected_departure ?? Carbon::now()->subDays(5);
+            $originLoc = $shipment->origin;
+            $destLoc = $shipment->destination;
+            $vessel = $shipment->vessel;
+
+            // 1. ORDER_CREATED (Always present)
+            TrackingEvent::create([
+                'shipment_id' => $shipment->id,
+                'location_id' => $originLoc->id,
+                'created_by' => $operator->id,
                 'event_type' => 'ORDER_CREATED',
-                'event_time' => Carbon::now()->subHours(6),
-                'location_id' => $jakartaPort->id,
-                'description' => 'Electronic cargo booking manifest generated at Jakarta port terminal.',
-                'weather_condition' => 'Scattered Clouds',
-                'weather_temp_c' => 31.0,
-            ], $operator);
-        }
-
-        // 2. Shipment 2: Singapore -> Hamburg (Progressed to PICKED_UP)
-        $shipment2 = Shipment::where('shipment_number', 'CT-20261109-0002')->first();
-        if ($shipment2 && $shipment2->trackingEvents()->count() === 0) {
-            // Event 1: ORDER_CREATED
-            $trackingService->recordEvent($shipment2, [
-                'event_type' => 'ORDER_CREATED',
-                'event_time' => Carbon::now()->subDays(2),
-                'location_id' => $singaporePort->id,
-                'description' => 'Container booking order initialized in Singapore hub.',
-            ], $operator);
-
-            // Event 2: BOOKED (State Transition)
-            $shipmentService->transitionTo($shipment2, 'BOOKED', [
-                'event_type' => 'BOOKING_CONFIRMED',
-                'event_time' => Carbon::now()->subDays(1)->subHours(12),
-                'location_id' => $singaporePort->id,
-                'description' => 'Space allocated on Evergreen feeder vessel. Slot confirmed.',
-            ], $operator);
-
-            // Event 3: PICKED_UP (State Transition)
-            $shipmentService->transitionTo($shipment2, 'PICKED_UP', [
-                'event_type' => 'PICKED_UP',
-                'event_time' => Carbon::now()->subHours(8),
-                'location_id' => $singaporePort->id,
-                'description' => 'Cargo received and scanned at Singapore Container Terminal Gate 3.',
-                'weather_condition' => 'Light Rain',
-                'weather_temp_c' => 28.5,
-            ], $operator);
-        }
-
-        // 3. Shipment 3: Jakarta Port -> Singapore Port (Progressed to IN_TRANSIT with Ocean Waypoint)
-        $shipment3 = Shipment::where('shipment_number', 'CT-20261109-0003')->first();
-        $jakartaPort = Location::where('code', 'IDJKT')->first();
-
-        if ($shipment3 && $shipment3->trackingEvents()->count() === 0) {
-            // Event 1: ORDER_CREATED
-            $trackingService->recordEvent($shipment3, [
-                'event_type' => 'ORDER_CREATED',
-                'event_time' => Carbon::now()->subHours(18),
-                'location_id' => $jakartaPort?->id,
-                'description' => 'Ocean bill of lading issued for containerized semiconductor cargo.',
-            ], $operator);
-
-            // Event 2: BOOKED
-            $shipmentService->transitionTo($shipment3, 'BOOKED', [
-                'event_type' => 'BOOKING_CONFIRMED',
-                'event_time' => Carbon::now()->subHours(14),
-                'location_id' => $jakartaPort?->id,
-                'description' => 'Container booking confirmed on MSC Gülsün feeder service.',
-            ], $operator);
-
-            // Event 3: PICKED_UP
-            $shipmentService->transitionTo($shipment3, 'PICKED_UP', [
-                'event_type' => 'PICKED_UP',
-                'event_time' => Carbon::now()->subHours(8),
-                'location_id' => $jakartaPort?->id,
-                'description' => '40ft container loaded and lashed on vessel deck at Tanjung Priok Berth 102.',
+                'event_time' => $departure->copy()->subDays(2),
+                'description' => "Electronic booking order and container allocation initiated for {$shipment->cargo_type}.",
+                'latitude' => $originLoc->latitude,
+                'longitude' => $originLoc->longitude,
                 'weather_condition' => 'Clear Sky',
-                'weather_temp_c' => 30.0,
-            ], $operator);
-
-            // Event 4: IN_TRANSIT (DEPARTED)
-            $shipmentService->transitionTo($shipment3, 'IN_TRANSIT', [
-                'event_type' => 'DEPARTED',
-                'event_time' => Carbon::now()->subHours(3),
-                'location_id' => $jakartaPort?->id,
-                'description' => 'Vessel departed Tanjung Priok Port, heading north into Java Sea lane.',
-            ], $operator);
-
-            // Event 5: Intermediate Maritime Checkpoint (Does NOT change macro status)
-            $trackingService->recordIntermediateEvent($shipment3, 'IN_TRANSIT', [
-                'event_time' => Carbon::now()->subHours(1),
-                'latitude' => -1.2500000,
-                'longitude' => 105.1000000,
-                'description' => 'Vessel underway using engine, transiting Bangka Strait shipping corridor. Speed 15.4 knots.',
-                'weather_condition' => 'Fair Sea Conditions',
                 'weather_temp_c' => 29.5,
-            ], $operator);
+            ]);
+
+            if (in_array($shipment->current_status, ['BOOKED', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'EXCEPTION'])) {
+                // 2. BOOKING_CONFIRMED
+                TrackingEvent::create([
+                    'shipment_id' => $shipment->id,
+                    'location_id' => $originLoc->id,
+                    'created_by' => $operator->id,
+                    'event_type' => 'BOOKING_CONFIRMED',
+                    'event_time' => $departure->copy()->subDays(1),
+                    'description' => "Ocean slot confirmed on {$shipment->carrier?->name}. Bill of lading issued.",
+                    'latitude' => $originLoc->latitude,
+                    'longitude' => $originLoc->longitude,
+                    'weather_condition' => 'Scattered Clouds',
+                    'weather_temp_c' => 30.0,
+                ]);
+            }
+
+            if (in_array($shipment->current_status, ['PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'EXCEPTION'])) {
+                // 3. PICKED_UP / GATED IN
+                TrackingEvent::create([
+                    'shipment_id' => $shipment->id,
+                    'location_id' => $originLoc->id,
+                    'created_by' => $operator->id,
+                    'event_type' => 'PICKED_UP',
+                    'event_time' => $departure->copy()->subHours(6),
+                    'description' => "Container {$shipment->container_number} gated in and inspected at {$originLoc->name} container terminal.",
+                    'latitude' => $originLoc->latitude,
+                    'longitude' => $originLoc->longitude,
+                    'weather_condition' => 'Partly Cloudy',
+                    'weather_temp_c' => 28.0,
+                ]);
+            }
+
+            if (in_array($shipment->current_status, ['IN_TRANSIT', 'DELIVERED', 'EXCEPTION'])) {
+                // 4. LOADED ON VESSEL & DEPARTED (IN_TRANSIT)
+                $waypointLat = $vessel ? $vessel->last_latitude : ($originLoc->latitude + $destLoc->latitude) / 2;
+                $waypointLng = $vessel ? $vessel->last_longitude : ($originLoc->longitude + $destLoc->longitude) / 2;
+
+                TrackingEvent::create([
+                    'shipment_id' => $shipment->id,
+                    'location_id' => null,
+                    'created_by' => $operator->id,
+                    'event_type' => 'IN_TRANSIT',
+                    'event_time' => $departure->copy()->addHours(12),
+                    'description' => "Vessel {$vessel?->name} underway on international maritime lane. Telemetry active at speed {$vessel?->last_speed_knots} knots.",
+                    'latitude' => $waypointLat,
+                    'longitude' => $waypointLng,
+                    'weather_condition' => 'Ocean Swell & Moderate Breeze',
+                    'weather_temp_c' => 26.5,
+                ]);
+            }
+
+            if ($shipment->current_status === 'DELIVERED') {
+                // 5. ARRIVED & UNLOADED (DELIVERED)
+                $actual = $shipment->actual_arrival ?? Carbon::now()->subDays(1);
+                TrackingEvent::create([
+                    'shipment_id' => $shipment->id,
+                    'location_id' => $destLoc->id,
+                    'created_by' => $operator->id,
+                    'event_type' => 'DELIVERED',
+                    'event_time' => $actual,
+                    'description' => "Container successfully discharged and cleared customs release at {$destLoc->name}.",
+                    'latitude' => $destLoc->latitude,
+                    'longitude' => $destLoc->longitude,
+                    'weather_condition' => 'Light Sea Breeze',
+                    'weather_temp_c' => 21.0,
+                ]);
+            }
         }
     }
 }

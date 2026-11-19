@@ -1,59 +1,93 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# CargoTrace — Global Maritime Shipment Visibility & Automated Tracking Platform
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+CargoTrace adalah platform visibilitas pengiriman kargo maritim global berbasis Laravel 12, MariaDB, Leaflet.js, dan integrasi telemetri otomatis. Sistem ini dirancang untuk memantau perjalanan kapal kontainer internasional dari pelabuhan asal (origin), pelabuhan transit, hingga pelabuhan tujuan (destination) dengan akurasi koordinat AIS, deteksi keterlambatan otomatis (ETA/delay), serta peringatan cuaca maritim.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🏗️ Arsitektur & Teknologi
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Backend:** Laravel 12 (PHP 8.2+) dengan arsitektur Service-Repository, Form Request Validation, API Resources, dan Strict State Machine.
+- **Database:** MariaDB / MySQL dengan indexed foreign keys, compound indexes, dan soft deletes.
+- **Frontend & Peta:** Blade Templates, Tailwind CSS, Leaflet.js (Peta Maritim Interaktif OpenStreetMap), Chart.js (Grafik Distribusi).
+- **Integrasi Eksternal:**
+  - **Open-Meteo API:** Pemantauan cuaca laut pelabuhan & waypoint maritim secara otomatis tanpa token berbayar.
+  - **Frankfurter API:** Valuasi nilai pabean kargo multi-mata uang (USD, IDR, EUR, SGD, JPY, CNY) dengan fallback otomatis.
+  - **Python AIS Collector (`python/ais_collector.py`):** Modul ingest data telemetri posisi kapal via REST API `/api/integrations/vessel-positions`.
+- **Testing:** PHPUnit / Pest dengan 121 automated unit & feature tests.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 👥 3 Role Pengguna & Hak Akses (RBAC)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+1. **Administrator (`admin@cargotrace.com` / `password`)**
+   - Akses penuh ke seluruh data armada kapal, pelabuhan, kargo, jejak audit (Audit Logs), dan konfigurasi sistem.
+   - Otoritas untuk melakukan soft-delete atau manajemen entitas sistem.
+2. **Logistics Operator (`operator@cargotrace.com` / `password`)**
+   - Mendaftarkan pengiriman kargo baru (manifest booking).
+   - Melakukan transisi status linear (`CREATED` &rarr; `BOOKED` &rarr; `PICKED_UP` &rarr; `IN_TRANSIT` &rarr; `DELIVERED`).
+   - Melaporkan dan menyelesaikan kendala operasional (Shipment Exceptions).
+   - Mengoperasikan simulasi pelayaran AIS kapal.
+3. **Customer (`customer@cargotrace.com` / `password`)**
+   - Akses visual hanya terhadap pengiriman miliknya (pencegahan IDOR ketat via scoped query).
+   - Melacak lokasi kontainer di peta maritim interaktif, melihat status perjalanan (timeline), dan mengunduh laporan tracking CSV.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## 🚢 Fitur Utama Platform
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 1. Interactive Maritime Tracking Map (`/tracking-map`)
+- Visualisasi pelayaran kapal internasional dengan Leaflet.js:
+  - Pelabuhan asal (Origin Port - Hijau)
+  - Pelabuhan transit (Transit Port - Oranye)
+  - Pelabuhan tujuan (Destination Port - Merah)
+  - Marker kapal kargo berlayar (Kapal - Biru) dengan haluan derajat dan kecepatan
+  - Jalur pelayaran laut (Geodesic Great Circle Polylines)
+- Navigasi peta: Zoom in/out, panning halus, tombol pintas `🧭 Fit Rute`, dan popup informasi lengkap pada setiap marker.
+- Dukungan filter: Pencarian no. resi, filter kapal, filter negara, filter pelabuhan, dan filter status.
 
-### Premium Partners
+### 2. Aturan Perhitungan ETA & Delay Detection
+Platform menghitung keterlambatan secara deterministik berdasarkan jadwal resmi:
+- **Baseline Perhitungan:**
+  - Jika `DELIVERED`: delay dihitung dari `actual_arrival` terhadap `expected_arrival`.
+  - Jika aktif (`CREATED`, `BOOKED`, `PICKED_UP`, `IN_TRANSIT`): delay dihitung dari `estimated_arrival` (atau waktu saat ini jika telah melewati batas jadwal) terhadap `expected_arrival`.
+- **Klasifikasi Keterlambatan (System Setting Thresholds):**
+  - **LOW:** Keterlambatan `> 0` hingga `6.0` jam.
+  - **MEDIUM:** Keterlambatan `> 6.0` hingga `24.0` jam.
+  - **HIGH:** Keterlambatan `> 24.0` jam.
+- **Pemisahan Cuaca vs Delay:** Kondisi cuaca (dari Open-Meteo) diperlakukan sebagai informasi operasional maritim (*Weather Advisory*), bukan klaim kausalitas langsung terhadap rumus delay.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 3. Append-Only Tracking History (Integritas Data)
+- Seluruh histori pelayaran kontainer dan pencatatan waypoint bersifat *append-only* (tidak dapat diubah atau dihapus sembarangan).
+- Transisi status diverifikasi melalui state machine ketat untuk mencegah status melompat tidak wajar atau kembali ke masa lalu.
 
-## Contributing
+### 4. Dokumentasi Integrasi Telemetri AIS (Jujur & Transparan)
+> **Catatan Kepatuhan Scope:** Sesuai batasan proyek akademik, pelacakan GPS satelit fisik real-time berada di luar cakupan perangkat keras. Oleh karena itu, data posisi AIS kapal disimulasikan secara sintetis melalui integrasi REST API yang valid (`POST /api/integrations/vessel-positions`) atau script pembantu `python/ais_collector.py`. Status sinkronisasi pada dashboard dan peta mencerminkan waktu pembaruan aktual dari database (`Vessel::max('last_position_at')`).
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## 🚀 Panduan Menjalankan & Demo Pengujian
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 1. Kredensial Login Demo
+| Role | Email | Password |
+|---|---|---|
+| **Administrator** | `admin@cargotrace.com` | `password` |
+| **Logistics Operator** | `operator@cargotrace.com` | `password` |
+| **Customer** | `customer@cargotrace.com` | `password` |
 
-## Security Vulnerabilities
+### 2. URL Halaman Utama
+- **Dashboard Operasional:** `http://127.0.0.1:8000/dashboard`
+- **Peta Pelacakan Maritim (Tracking Map):** `http://127.0.0.1:8000/tracking-map`
+- **Export Laporan CSV:** `http://127.0.0.1:8000/tracking-map/export?code=CT-20261109-0002`
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 3. Menjalankan Automated Test Suite
+Untuk memverifikasi 121 pengujian unit, integrasi API, state machine, dan anti-IDOR:
+```bash
+php artisan test
+```
 
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### 4. Menjalankan Python AIS Data Collector (Opsional)
+```bash
+python python/ais_collector.py --url http://127.0.0.1:8000 --email operator@cargotrace.com --password password --once
+```
+Atau melalui tombol simulasi di halaman Tracking Map:
+- Klik tombol **"⚡ Simulasi Pergerakan Kapal (AIS Ping)"** pada panel kontrol peta.

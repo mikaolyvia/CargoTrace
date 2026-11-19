@@ -187,11 +187,31 @@ class Shipment extends Model
     }
 
     /**
-     * Check if shipment is marked as delayed.
+     * Check if shipment is marked as delayed or past expected arrival.
      */
     public function isDelayed(): bool
     {
-        return (bool) $this->is_delayed;
+        if ($this->is_delayed) {
+            return true;
+        }
+
+        if ($this->current_status !== 'DELIVERED' && $this->expected_arrival && now()->gt($this->expected_arrival)) {
+            return true;
+        }
+
+        if ($this->estimated_arrival && $this->expected_arrival && $this->estimated_arrival->gt($this->expected_arrival)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Recalculate and synchronize delay status using EtaService.
+     */
+    public function syncDelayStatus(): self
+    {
+        return app(\App\Services\EtaService::class)->recalculateDelay($this);
     }
 
     /**
@@ -212,7 +232,21 @@ class Shipment extends Model
 
     public function scopeDelayed($query)
     {
-        return $query->where('is_delayed', true);
+        return $query->where(function ($q) {
+            $q->where('is_delayed', true)
+              ->orWhere(function ($sub) {
+                  $sub->where('current_status', '!=', 'DELIVERED')
+                      ->where(function ($nested) {
+                          $nested->whereColumn('estimated_arrival', '>', 'expected_arrival')
+                                 ->orWhere('expected_arrival', '<', now());
+                      });
+              })
+              ->orWhere(function ($sub) {
+                  $sub->where('current_status', 'DELIVERED')
+                      ->whereNotNull('actual_arrival')
+                      ->whereColumn('actual_arrival', '>', 'expected_arrival');
+              });
+        });
     }
 
     public function scopeInTransit($query)
@@ -223,5 +257,66 @@ class Shipment extends Model
     public function scopeDelivered($query)
     {
         return $query->where('current_status', 'DELIVERED');
+    }
+
+    /**
+     * Scope query with flexible search and filtering criteria.
+     */
+    public function scopeFilter($query, array $filters = [])
+    {
+        if (! empty($filters['search'])) {
+            $search = trim($filters['search']);
+            $query->where(function ($q) use ($search) {
+                $q->where('shipment_number', 'like', "%{$search}%")
+                  ->orWhere('container_number', 'like', "%{$search}%")
+                  ->orWhere('cargo_type', 'like', "%{$search}%")
+                  ->orWhereHas('carrier', function ($sub) use ($search) {
+                      $sub->where('name', 'like', "%{$search}%")
+                          ->orWhere('code', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('vessel', function ($sub) use ($search) {
+                      $sub->where('name', 'like', "%{$search}%")
+                          ->orWhere('imo_number', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        if (! empty($filters['status'])) {
+            $query->where('current_status', $filters['status']);
+        }
+
+        if (! empty($filters['carrier_id'])) {
+            $query->where('carrier_id', $filters['carrier_id']);
+        }
+
+        if (! empty($filters['origin_id'])) {
+            $query->where('origin_id', $filters['origin_id']);
+        }
+
+        if (! empty($filters['destination_id'])) {
+            $query->where('destination_id', $filters['destination_id']);
+        }
+
+        if (! empty($filters['delay_status'])) {
+            if ($filters['delay_status'] === 'delayed') {
+                $query->delayed();
+            } elseif ($filters['delay_status'] === 'on_schedule') {
+                $query->where('is_delayed', false)
+                      ->where(function ($q) {
+                          $q->whereNull('expected_arrival')
+                            ->orWhere('expected_arrival', '>=', now());
+                      });
+            }
+        }
+
+        if (! empty($filters['country'])) {
+            $country = $filters['country'];
+            $query->where(function ($q) use ($country) {
+                $q->whereHas('origin', fn ($sub) => $sub->where('country', $country))
+                  ->orWhereHas('destination', fn ($sub) => $sub->where('country', $country));
+            });
+        }
+
+        return $query;
     }
 }

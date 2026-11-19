@@ -60,7 +60,7 @@
 
 <!-- 5 Maritime KPI Metric Cards -->
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-    <!-- Total Shipments -->
+    <!-- Card 1: Total Shipments -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:border-blue-300 transition group">
         <div class="flex items-center justify-between text-slate-400 mb-2">
             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Kontainer</span>
@@ -74,22 +74,22 @@
         </div>
     </div>
 
-    <!-- Sailing / In Transit -->
+    <!-- Card 2: Sailing / In Transit -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:border-amber-300 transition group">
         <div class="flex items-center justify-between text-slate-400 mb-2">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Kapal Berlayar</span>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Dalam Pelayaran</span>
             <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm group-hover:scale-110 transition">
                 🚢
             </div>
         </div>
         <div class="text-2xl font-black text-amber-600">{{ number_format($metrics['summary']['in_transit']) }}</div>
-        <div class="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
+        <div class="text-[11px] text-slate-500 mt-1 flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-            <span>Dalam pelayaran aktif</span>
+            <span class="font-semibold text-slate-700">{{ $metrics['summary']['sailing_vessels'] ?? 0 }} Kapal Underway</span>
         </div>
     </div>
 
-    <!-- Delivered -->
+    <!-- Card 3: Delivered -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:border-emerald-300 transition group">
         <div class="flex items-center justify-between text-slate-400 mb-2">
             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Bongkar Pelabuhan</span>
@@ -101,24 +101,24 @@
         <div class="text-[11px] text-slate-500 mt-1">Tiba di pelabuhan tujuan</div>
     </div>
 
-    <!-- Delayed -->
+    <!-- Card 4: Delayed -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:border-rose-300 transition group">
         <div class="flex items-center justify-between text-slate-400 mb-2">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Potensi Delay</span>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Delayed (Terlambat)</span>
             <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-sm group-hover:scale-110 transition">
                 ⏱️
             </div>
         </div>
         <div class="text-2xl font-black text-rose-600">{{ number_format($metrics['summary']['delayed']) }}</div>
         <div class="text-[11px] text-rose-500 font-semibold mt-1">
-            {{ $metrics['summary']['delay_rate_percentage'] }}% dari total armada
+            {{ $metrics['summary']['delay_rate_percentage'] }}% delay rate
         </div>
     </div>
 
-    <!-- Exceptions -->
+    <!-- Card 5: Open Exceptions -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:border-purple-300 transition group">
         <div class="flex items-center justify-between text-slate-400 mb-2">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Peringatan / Cuaca</span>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Open Exceptions</span>
             <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm group-hover:scale-110 transition">
                 ⚠️
             </div>
@@ -138,78 +138,112 @@
                 <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
                 <h2 class="text-lg font-black tracking-tight text-white">Live Maritime Fleet Telemetry</h2>
             </div>
-            <p class="text-xs text-slate-400 mt-0.5">Data koordinat satelit AIS kapal peti kemas langsung dari integrasi Python Collector</p>
+            <p class="text-xs text-slate-400 mt-0.5">Data koordinat pelayaran kapal disimulasikan melalui integrasi Python Collector / REST API (<code class="text-cyan-300">/api/integrations/vessel-positions</code>)</p>
         </div>
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 text-xs font-bold font-mono">
-            <span>📡</span> Python AIS Collector: Active
-        </span>
+        <div>
+            @if(!empty($metrics['summary']['latest_ais_sync']))
+                <span class="px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-[11px] font-mono font-bold text-cyan-400 flex items-center gap-1.5">
+                    <span>📡</span> Simulasi AIS Feed: Terhubung • Sinkron {{ \Carbon\Carbon::parse($metrics['summary']['latest_ais_sync'])->diffForHumans() }}
+                </span>
+            @else
+                <span class="px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-[11px] font-mono font-bold text-slate-400 flex items-center gap-1.5">
+                    <span>📡</span> Simulasi AIS Feed: Siap Terima Data
+                </span>
+            @endif
+        </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <!-- Active Vessel Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         @forelse($metrics['active_vessels'] as $vessel)
-            <div class="bg-slate-800/90 rounded-2xl p-4 border border-slate-700/80 hover:border-cyan-500/50 transition flex flex-col justify-between">
-                <div>
-                    <div class="flex items-center justify-between gap-2 mb-2">
-                        <span class="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-blue-900/60 text-cyan-300 border border-blue-700/60">
-                            {{ $vessel->carrier->name ?? 'Ocean Carrier' }}
-                        </span>
-                        <span class="text-xs font-bold {{ $vessel->status === 'UNDERWAY' ? 'text-emerald-400' : 'text-amber-400' }} flex items-center gap-1">
-                            <span class="w-2 h-2 rounded-full {{ $vessel->status === 'UNDERWAY' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400' }}"></span>
-                            {{ $vessel->status }}
-                        </span>
+            <div class="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 hover:border-cyan-500/50 transition">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold text-base">
+                            🚢
+                        </div>
+                        <div>
+                            <h4 class="font-extrabold text-sm text-white tracking-tight">{{ $vessel->name }}</h4>
+                            <p class="text-[10px] text-slate-400 font-mono">IMO: {{ $vessel->imo_number }} • {{ $vessel->carrier->code ?? 'CARRIER' }}</p>
+                        </div>
                     </div>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono {{ $vessel->status === 'UNDERWAY' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'bg-slate-700 text-slate-300' }}">
+                        {{ $vessel->status }}
+                    </span>
+                </div>
 
-                    <h3 class="text-base font-extrabold text-white tracking-tight">{{ $vessel->name }}</h3>
-                    <p class="text-xs text-slate-400 font-mono mt-0.5">IMO {{ $vessel->imo_number }} • Bendera {{ $vessel->flag_country ?? 'Intl' }}</p>
-
-                    <div class="mt-3 pt-3 border-t border-slate-700/60 grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                            <span class="text-[10px] uppercase font-bold text-slate-400">Kecepatan Saat Ini</span>
-                            <div class="font-extrabold text-cyan-300 font-mono">{{ $vessel->current_speed_knots ?? 18.5 }} knots</div>
-                        </div>
-                        <div>
-                            <span class="text-[10px] uppercase font-bold text-slate-400">Arah Haluan</span>
-                            <div class="font-extrabold text-slate-200 font-mono">{{ $vessel->current_heading_degrees ?? 285 }}° NW</div>
-                        </div>
+                <div class="grid grid-cols-2 gap-2 text-xs mb-3 bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/50">
+                    <div>
+                        <span class="text-slate-400 text-[10px] block">Kecepatan:</span>
+                        <span class="font-bold text-white font-mono">{{ $vessel->last_speed_knots ?? 0 }} kn</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 text-[10px] block">Arah Haluan:</span>
+                        <span class="font-bold text-white font-mono">{{ $vessel->last_heading_degrees ?? 0 }}°</span>
+                    </div>
+                    <div class="col-span-2 pt-1 border-t border-slate-800">
+                        <span class="text-slate-400 text-[10px] block">Koordinat AIS Terkini:</span>
+                        <span class="font-mono text-cyan-300 text-[11px]">
+                            {{ number_format($vessel->last_latitude ?? 0, 4) }}°, {{ number_format($vessel->last_longitude ?? 0, 4) }}°
+                        </span>
                     </div>
                 </div>
 
-                <div class="mt-4 pt-3 border-t border-slate-700/40 flex items-center justify-between text-xs">
-                    <span class="text-[11px] text-slate-400">Kapasitas: {{ number_format($vessel->capacity_teu ?? 20000) }} TEU</span>
-                    <a href="{{ route('tracking.map') }}" class="text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1">
-                        Lihat Peta &rarr;
+                <div class="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-700/60">
+                    <span class="flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        {{ $vessel->last_position_at ? $vessel->last_position_at->diffForHumans() : 'Baru saja' }}
+                    </span>
+                    <a href="{{ route('tracking.map') }}" class="text-cyan-400 hover:text-cyan-300 font-bold transition">
+                        Buka di Peta &rarr;
                     </a>
                 </div>
             </div>
         @empty
             <div class="col-span-3 text-center py-6 text-slate-400 text-xs">
-                Belum ada data kapal kargo terdaftar.
+                Tidak ada data armada kapal maritim yang aktif.
             </div>
         @endforelse
     </div>
 </div>
 
-<!-- Charts Row: Status Distribution & Ocean Carriers -->
+<!-- Charts Row: Status Doughnut & Carrier Distribution -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Status Distribution Doughnut Chart -->
+    <!-- Status Distribution Doughnut Chart with Legend -->
     <div class="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
         <div>
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-sm font-extrabold text-slate-900 tracking-tight">Distribusi Status Kontainer</h3>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tahapan Pelayaran</span>
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-extrabold text-slate-900 tracking-tight">Distribusi Status Pengiriman</h3>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status Maritim</span>
             </div>
             <div class="relative h-56 flex items-center justify-center">
                 <canvas id="statusChart"></canvas>
             </div>
         </div>
-        <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs text-slate-600">
-            <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+        <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-3 gap-2 text-[11px] text-slate-600">
+            <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                <span>Created ({{ $metrics['charts']['status_distribution']['CREATED'] ?? 0 }})</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 shrink-0"></span>
+                <span>Booked ({{ $metrics['charts']['status_distribution']['BOOKED'] ?? 0 }})</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0"></span>
+                <span>Picked Up ({{ $metrics['charts']['status_distribution']['PICKED_UP'] ?? 0 }})</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
                 <span>In Transit ({{ $metrics['charts']['status_distribution']['IN_TRANSIT'] ?? 0 }})</span>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
                 <span>Delivered ({{ $metrics['charts']['status_distribution']['DELIVERED'] ?? 0 }})</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0"></span>
+                <span>Exceptions ({{ $metrics['summary']['open_exceptions'] ?? 0 }})</span>
             </div>
         </div>
     </div>
@@ -219,7 +253,7 @@
         <div>
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-sm font-extrabold text-slate-900 tracking-tight">Beban Muatan Ocean Carrier</h3>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Maersk • Evergreen • MSC</span>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Maersk • Evergreen • MSC • DHL • SQC</span>
             </div>
             <div class="relative h-56">
                 <canvas id="carrierChart"></canvas>
@@ -232,16 +266,113 @@
     </div>
 </div>
 
-<!-- Active Ocean Shipments Table -->
+<!-- Active Ocean Shipments Table with Server-Side Search & Multi-Criteria Filters -->
 <div id="shipments-table" class="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-    <div class="p-6 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h3 class="text-base font-extrabold text-slate-900 tracking-tight">Daftar Pengiriman Kontainer Aktif</h3>
-            <p class="text-xs text-slate-500 mt-0.5">Jadwal rute pelabuhan asal, pelabuhan transit, pelabuhan tujuan, dan estimasi waktu kedatangan (ETA)</p>
+    <div class="p-6 border-b border-slate-200/80 flex flex-col gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h3 class="text-base font-extrabold text-slate-900 tracking-tight">Daftar Pengiriman Kontainer</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Filter berdasarkan nomor resi, status pelayaran, carrier, pelabuhan rute, dan keterlambatan</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('tracking.map') }}" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition">
+                    <span>Telusuri di Peta Interaktif</span> &rarr;
+                </a>
+            </div>
         </div>
-        <a href="{{ route('tracking.map') }}" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition">
-            <span>Telusuri di Peta Interaktif</span> &rarr;
-        </a>
+
+        <!-- Filter Bar Form -->
+        <form method="GET" action="{{ route('dashboard') }}" class="bg-slate-50 p-4 rounded-xl border border-slate-200/70 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 text-xs">
+            <!-- Keyword Search -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Cari Resi / Kontainer / Kargo</label>
+                <input type="text" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="CT-..., MSKU-..., Mesin..."
+                       class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 focus:outline-none focus:border-blue-500 text-xs">
+            </div>
+
+            <!-- Status Filter -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Status Pengiriman</label>
+                <select name="status" class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 focus:outline-none focus:border-blue-500 text-xs">
+                    <option value="">Semua Status</option>
+                    <option value="CREATED" {{ ($filters['status'] ?? '') === 'CREATED' ? 'selected' : '' }}>CREATED</option>
+                    <option value="BOOKED" {{ ($filters['status'] ?? '') === 'BOOKED' ? 'selected' : '' }}>BOOKED</option>
+                    <option value="PICKED_UP" {{ ($filters['status'] ?? '') === 'PICKED_UP' ? 'selected' : '' }}>PICKED_UP</option>
+                    <option value="IN_TRANSIT" {{ ($filters['status'] ?? '') === 'IN_TRANSIT' ? 'selected' : '' }}>IN_TRANSIT</option>
+                    <option value="DELIVERED" {{ ($filters['status'] ?? '') === 'DELIVERED' ? 'selected' : '' }}>DELIVERED</option>
+                </select>
+            </div>
+
+            <!-- Carrier Filter -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Ocean Carrier</label>
+                <select name="carrier_id" class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 focus:outline-none focus:border-blue-500 text-xs">
+                    <option value="">Semua Carrier</option>
+                    @foreach($carriers as $c)
+                        <option value="{{ $c->id }}" {{ ($filters['carrier_id'] ?? '') == $c->id ? 'selected' : '' }}>
+                            {{ $c->name }} ({{ $c->code }})
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Origin Port -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Pelabuhan Asal</label>
+                <select name="origin_id" class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 focus:outline-none focus:border-blue-500 text-xs">
+                    <option value="">Semua Pelabuhan Asal</option>
+                    @foreach($locations as $loc)
+                        <option value="{{ $loc->id }}" {{ ($filters['origin_id'] ?? '') == $loc->id ? 'selected' : '' }}>
+                            {{ $loc->name }} ({{ $loc->city }})
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Destination Port -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Pelabuhan Tujuan</label>
+                <select name="destination_id" class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 focus:outline-none focus:border-blue-500 text-xs">
+                    <option value="">Semua Pelabuhan Tujuan</option>
+                    @foreach($locations as $loc)
+                        <option value="{{ $loc->id }}" {{ ($filters['destination_id'] ?? '') == $loc->id ? 'selected' : '' }}>
+                            {{ $loc->name }} ({{ $loc->city }})
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Delay Status -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Status Keterlambatan</label>
+                <select name="delay_status" class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 focus:outline-none focus:border-blue-500 text-xs">
+                    <option value="">Semua Jadwal</option>
+                    <option value="delayed" {{ ($filters['delay_status'] ?? '') === 'delayed' ? 'selected' : '' }}>Terlambat (Delayed Only)</option>
+                    <option value="on_schedule" {{ ($filters['delay_status'] ?? '') === 'on_schedule' ? 'selected' : '' }}>Tepat Waktu (On Schedule)</option>
+                </select>
+            </div>
+
+            <!-- Sorting -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Urutkan</label>
+                <select name="sort_by" class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 focus:outline-none focus:border-blue-500 text-xs">
+                    <option value="created_at" {{ ($filters['sort_by'] ?? '') === 'created_at' ? 'selected' : '' }}>Waktu Pendaftaran (Terbaru)</option>
+                    <option value="expected_arrival" {{ ($filters['sort_by'] ?? '') === 'expected_arrival' ? 'selected' : '' }}>Estimasi ETA Kedatangan</option>
+                    <option value="delay_hours" {{ ($filters['sort_by'] ?? '') === 'delay_hours' ? 'selected' : '' }}>Durasi Keterlambatan</option>
+                    <option value="shipment_number" {{ ($filters['sort_by'] ?? '') === 'shipment_number' ? 'selected' : '' }}>Nomor Resi</option>
+                </select>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-end gap-2">
+                <button type="submit" class="flex-1 py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition">
+                    Terapkan Filter
+                </button>
+                <a href="{{ route('dashboard') }}" class="py-2 px-3 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition">
+                    Reset
+                </a>
+            </div>
+        </form>
     </div>
 
     <div class="overflow-x-auto">
@@ -258,7 +389,7 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-                @forelse($metrics['recent_shipments'] as $shipment)
+                @forelse($metrics['shipments'] as $shipment)
                     <tr class="hover:bg-slate-50/80 transition">
                         <!-- Tracking & Container -->
                         <td class="px-6 py-4">
@@ -275,7 +406,7 @@
                                 <span>{{ $shipment->vessel->name ?? 'Ocean Vessel' }}</span>
                             </div>
                             <div class="text-[11px] text-slate-500 mt-0.5">
-                                {{ $shipment->carrier->name ?? 'Maersk Line' }} ({{ $shipment->carrier->code ?? 'MSK' }})
+                                {{ $shipment->carrier->name ?? 'Carrier Line' }} ({{ $shipment->carrier->code ?? 'MSK' }})
                             </div>
                         </td>
 
@@ -322,8 +453,8 @@
                                     <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> IN TRANSIT
                                 </span>
                             @elseif($shipment->current_status === 'BOOKED' || $shipment->current_status === 'PICKED_UP')
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> {{ $shipment->current_status }}
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> {{ $shipment->current_status }}
                                 </span>
                             @else
                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-100 text-slate-700 border border-slate-300">
@@ -340,11 +471,11 @@
                             @if($shipment->isDelayed())
                                 <div class="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-0.5">
                                     <span>⚠️ Terlambat</span>
-                                    <span>({{ $shipment->delay_severity }})</span>
+                                    <span>+{{ $shipment->delay_hours }}h ({{ $shipment->delay_severity }})</span>
                                 </div>
                             @else
                                 <div class="text-[10px] font-bold text-emerald-600 flex items-center gap-1 mt-0.5">
-                                    <span>✓ Sesuai Jadwal (On Schedule)</span>
+                                    <span>✓ On Schedule</span>
                                 </div>
                             @endif
                         </td>
@@ -360,13 +491,23 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-8 text-center text-slate-400">
-                            Tidak ada pengiriman kontainer yang tercatat saat ini.
+                        <td colspan="7" class="px-6 py-8 text-center text-slate-400">
+                            Tidak ada pengiriman kontainer yang sesuai dengan kriteria filter saat ini.
                         </td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
+    </div>
+
+    <!-- Server-Side Pagination Links -->
+    <div class="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="text-xs text-slate-500">
+            Menampilkan <span class="font-bold text-slate-800">{{ $metrics['shipments']->firstItem() ?? 0 }}</span> - <span class="font-bold text-slate-800">{{ $metrics['shipments']->lastItem() ?? 0 }}</span> dari <span class="font-bold text-slate-800">{{ $metrics['shipments']->total() }}</span> pengiriman kontainer
+        </div>
+        <div>
+            {{ $metrics['shipments']->links() }}
+        </div>
     </div>
 </div>
 
@@ -401,12 +542,12 @@
         <div>
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-sm font-extrabold text-slate-900 tracking-tight">Kepatuhan Operasional Maritim</h3>
-                <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider font-mono">ISO 18185 COMPLIANT</span>
+                <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider font-mono">APPEND-ONLY AUDIT TRAIL</span>
             </div>
             <div class="space-y-3 text-xs text-slate-600">
                 <div class="flex items-start gap-2.5">
                     <span class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">✓</span>
-                    <p><b class="text-slate-800">Append-Only Immutability:</b> Seluruh data peristiwa tracking kapal tidak dapat dihapus atau diubah secara bebas untuk menjaga integritas data logistik.</p>
+                    <p><b class="text-slate-800">Append-Only Immutability:</b> Seluruh data peristiwa tracking kapal tidak dapat dihapus atau diubah secara bebas untuk menjaga integritas data logistik maritim.</p>
                 </div>
                 <div class="flex items-start gap-2.5">
                     <span class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">✓</span>
@@ -414,7 +555,7 @@
                 </div>
                 <div class="flex items-start gap-2.5">
                     <span class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">✓</span>
-                    <p><b class="text-slate-800">Integrasi Otomatis AIS & Open-Meteo:</b> Telemetri koordinat dan kondisi cuaca laut diperbarui secara otomatis tanpa input manual.</p>
+                    <p><b class="text-slate-800">Integrasi Otomatis AIS & Open-Meteo:</b> Telemetri koordinat dan kondisi cuaca laut diperbarui secara otomatis via REST API tanpa input manual.</p>
                 </div>
             </div>
         </div>
@@ -428,7 +569,7 @@
 <!-- Chart.js Initialization Script -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Status Doughnut Chart
+        // Status Doughnut Chart with Legend
         const statusCtx = document.getElementById('statusChart');
         if (statusCtx) {
             const statusDist = @json($metrics['charts']['status_distribution']);
@@ -440,11 +581,11 @@
                         data: Object.values(statusDist),
                         backgroundColor: [
                             '#94a3b8', // CREATED
-                            '#38bdf8', // BOOKED
-                            '#fbbf24', // PICKED_UP
-                            '#2563eb', // IN_TRANSIT
+                            '#6366f1', // BOOKED
+                            '#3b82f6', // PICKED_UP
+                            '#f59e0b', // IN_TRANSIT
                             '#10b981', // DELIVERED
-                            '#f43f5e', // EXCEPTION
+                            '#a855f7', // EXCEPTION
                             '#64748b'  // CANCELLED
                         ],
                         borderWidth: 2,
@@ -456,10 +597,19 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: false
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 10,
+                                padding: 8,
+                                font: {
+                                    size: 10,
+                                    family: 'Inter, sans-serif'
+                                }
+                            }
                         }
                     },
-                    cutout: '70%'
+                    cutout: '65%'
                 }
             });
         }

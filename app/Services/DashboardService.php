@@ -17,12 +17,13 @@ class DashboardService
     ) {}
 
     /**
-     * Retrieve aggregated operational metrics tailored by user role.
+     * Retrieve aggregated operational metrics tailored by user role and filters.
      *
      * @param User|null $user
+     * @param array $filters
      * @return array
      */
-    public function getMetrics(?User $user = null): array
+    public function getMetrics(?User $user = null, array $filters = []): array
     {
         $isCustomer = $user && $user->isCustomer();
         $customerId = $isCustomer ? $user->id : null;
@@ -36,6 +37,9 @@ class DashboardService
         $totalShipments = (clone $shipmentsQuery)->count();
         $inTransitCount = (clone $shipmentsQuery)->where('current_status', 'IN_TRANSIT')->count();
         $deliveredCount = (clone $shipmentsQuery)->where('current_status', 'DELIVERED')->count();
+        $sailingVesselsCount = \App\Models\Vessel::where('status', 'UNDERWAY')->count();
+        $latestAisSync = \App\Models\Vessel::max('last_position_at');
+
         $totalCargoValuationUsd = (float) ((clone $shipmentsQuery)->sum('total_declared_value') ?? 0.0);
         $totalCargoValuationIdr = $this->currencyService->convert($totalCargoValuationUsd, 'USD', 'IDR');
         $totalCargoValuationEur = $this->currencyService->convert($totalCargoValuationUsd, 'USD', 'EUR');
@@ -43,14 +47,18 @@ class DashboardService
         // Delayed shipments query
         $delayedCount = (clone $shipmentsQuery)
             ->where(function ($q) {
-                $q->where(function ($sub) {
-                    $sub->where('current_status', '!=', 'DELIVERED')
-                        ->whereColumn('estimated_arrival', '>', 'expected_arrival');
-                })->orWhere(function ($sub) {
-                    $sub->where('current_status', 'DELIVERED')
-                        ->whereNotNull('actual_arrival')
-                        ->whereColumn('actual_arrival', '>', 'expected_arrival');
-                });
+                $q->where('is_delayed', true)
+                    ->orWhere(function ($sub) {
+                        $sub->where('current_status', '!=', 'DELIVERED')
+                            ->where(function ($nested) {
+                                $nested->whereColumn('estimated_arrival', '>', 'expected_arrival')
+                                       ->orWhere('expected_arrival', '<', \Carbon\Carbon::now());
+                            });
+                    })->orWhere(function ($sub) {
+                        $sub->where('current_status', 'DELIVERED')
+                            ->whereNotNull('actual_arrival')
+                            ->whereColumn('actual_arrival', '>', 'expected_arrival');
+                    });
             })->count();
 
         // Open exceptions query
@@ -98,12 +106,18 @@ class DashboardService
             ->pluck('count', 'carrier_name')
             ->toArray();
 
-        // 3. Recent Shipments
-        $recentShipments = (clone $shipmentsQuery)
+        // 3. Paginated & Filtered Shipments
+        $sortField = in_array($filters['sort_by'] ?? '', ['created_at', 'expected_arrival', 'delay_hours', 'shipment_number', 'total_declared_value'])
+            ? $filters['sort_by']
+            : 'created_at';
+        $sortDirection = strtolower($filters['sort_order'] ?? '') === 'asc' ? 'asc' : 'desc';
+
+        $shipments = (clone $shipmentsQuery)
+            ->filter($filters)
             ->with(['carrier:id,name,code', 'origin:id,name,city,country,currency_code,currency_symbol', 'destination:id,name,city,country,currency_code,currency_symbol', 'customer:id,name', 'vessel:id,name,imo_number,status', 'items'])
-            ->orderByDesc('created_at')
-            ->limit(6)
-            ->get();
+            ->orderBy($sortField, $sortDirection)
+            ->paginate(10)
+            ->withQueryString();
 
         // 4. Active Maritime Vessels Fleet
         $activeVessels = \App\Models\Vessel::with('carrier:id,name,code')
@@ -111,7 +125,7 @@ class DashboardService
             ->limit(6)
             ->get();
 
-        // 4. Role-specific recent items
+        // 5. Role-specific recent items
         $recentAuditLogs = [];
         $recentNotifications = [];
 
@@ -133,6 +147,8 @@ class DashboardService
             'summary' => [
                 'total_shipments' => $totalShipments,
                 'in_transit' => $inTransitCount,
+                'sailing_vessels' => $sailingVesselsCount,
+                'latest_ais_sync' => $latestAisSync,
                 'delivered' => $deliveredCount,
                 'delayed' => $delayedCount,
                 'open_exceptions' => $openExceptionsCount,
@@ -149,7 +165,8 @@ class DashboardService
                 'status_distribution' => $statusDistribution,
                 'carrier_distribution' => $carrierCounts,
             ],
-            'recent_shipments' => $recentShipments,
+            'shipments' => $shipments,
+            'recent_shipments' => $shipments,
             'active_vessels' => $activeVessels,
             'recent_audit_logs' => $recentAuditLogs,
             'recent_notifications' => $recentNotifications,

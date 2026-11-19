@@ -23,17 +23,25 @@ class EtaService
     {
         $expected = $shipment->expected_arrival;
 
-        // 1. Determine baseline
-        $baseline = ($shipment->current_status === 'DELIVERED' || $shipment->actual_arrival !== null)
-            ? ($shipment->actual_arrival ?? $shipment->estimated_arrival)
-            : $shipment->estimated_arrival;
-
-        if (! $baseline || ! $expected) {
+        if (! $expected) {
             return [
                 'is_delayed' => false,
                 'delay_hours' => 0.00,
                 'delay_severity' => 'NONE',
             ];
+        }
+
+        // 1. Determine baseline
+        if ($shipment->current_status === 'DELIVERED' || $shipment->actual_arrival !== null) {
+            $baseline = $shipment->actual_arrival ?? $shipment->estimated_arrival ?? $expected;
+        } else {
+            // If not delivered: projected arrival is estimated_arrival.
+            // If expected arrival is already in the past and shipment is still active,
+            // the shipment has missed schedule and is overdue, so baseline is at least now().
+            $baseline = $shipment->estimated_arrival ?? $expected;
+            if (Carbon::now()->gt($expected) && Carbon::now()->gt($baseline)) {
+                $baseline = Carbon::now();
+            }
         }
 
         // 2. Compute delay in hours
