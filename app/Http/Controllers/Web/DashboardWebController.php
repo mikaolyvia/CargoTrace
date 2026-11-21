@@ -28,6 +28,8 @@ class DashboardWebController extends Controller
             'origin_id',
             'destination_id',
             'delay_status',
+            'date_from',
+            'date_to',
             'sort_by',
             'sort_order',
         ]);

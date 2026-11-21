@@ -264,7 +264,7 @@
                 <div class="flex items-start gap-4">
                     <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 shrink-0">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 17l1.5-9h15L21 17M3 17l2 4h14l2-4M3 17h18M6 8V4h4v4m4-4h4v4"/>
                         </svg>
                     </div>
                     <div>
@@ -355,23 +355,29 @@
                     <div id="map" class="w-full h-[560px] z-10"></div>
                 </div>
 
-                <!-- Map Legend -->
+                <!-- Map Legend & Quick Jump -->
                 <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
-                    <div class="flex items-center gap-4">
+                    <div class="flex flex-wrap items-center gap-3 sm:gap-4">
                         <div class="flex items-center gap-1.5">
                             <span class="w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-emerald-200"></span>
                             <span class="font-semibold text-slate-700">Pelabuhan Asal</span>
                         </div>
                         <div class="flex items-center gap-1.5">
-                            <span class="w-3 h-3 rounded-full bg-blue-500 ring-2 ring-blue-200"></span>
+                            <span class="w-3 h-3 rounded-full bg-amber-500 ring-2 ring-amber-200"></span>
+                            <span class="font-semibold text-slate-700">Titik Tracking / Waypoint</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-3 h-3 rounded-full bg-blue-600 ring-2 ring-blue-200"></span>
                             <span class="font-semibold text-slate-700">Posisi Kapal (AIS)</span>
                         </div>
                         <div class="flex items-center gap-1.5">
-                            <span class="w-3 h-3 rounded-full bg-purple-500 ring-2 ring-purple-200"></span>
+                            <span class="w-3 h-3 rounded-full bg-purple-600 ring-2 ring-purple-200"></span>
                             <span class="font-semibold text-slate-700">Pelabuhan Tujuan</span>
                         </div>
                     </div>
-                    <span class="text-[11px] text-slate-500 font-medium">Klik marker untuk melihat rincian cuaca & waktu</span>
+                    <a href="#timeline-section" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs transition">
+                        <span>🧭 Lihat Timeline Perjalanan ({{ $selectedShipment->trackingEvents->count() }} Event)</span> &darr;
+                    </a>
                 </div>
             </div>
 
@@ -414,6 +420,17 @@
                                 {{ $etaDetails['delay_hours'] }} Jam ({{ $etaDetails['severity'] }})
                             </span>
                         </div>
+                    </div>
+
+                    <!-- Alasan Perhitungan ETA & Rule Keterlambatan -->
+                    <div class="p-3.5 rounded-2xl {{ $etaDetails['is_delayed'] ? 'bg-rose-50/80 border border-rose-200 text-rose-900' : 'bg-emerald-50/80 border border-emerald-200 text-emerald-900' }} text-xs">
+                        <div class="font-extrabold flex items-center gap-1.5 mb-1 text-[11px] uppercase tracking-wider">
+                            <span>ℹ️</span>
+                            <span>Parameter & Alasan Perhitungan ETA:</span>
+                        </div>
+                        <p class="leading-relaxed text-[11px] {{ $etaDetails['is_delayed'] ? 'text-rose-800' : 'text-emerald-800' }}">
+                            {{ $etaDetails['calculation_reason'] }}
+                        </p>
                     </div>
 
                     <div class="pt-2 border-t border-slate-100 space-y-2 text-xs">
@@ -488,7 +505,7 @@
                             <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-600">
                                 <div>
                                     <span class="text-slate-400 block text-[10px]">Kapal Menuju Pelabuhan</span>
-                                    <b>{{ $destinationPortActivity['inbound_vessels'] }} Kapal Kargo</b>
+                                    <b>{{ $destinationPortActivity['inbound_vessels'] }} Kapal Kargo ({{ $destinationPortActivity['inbound_shipments'] ?? 1 }} Kontainer)</b>
                                 </div>
                                 <div>
                                     <span class="text-slate-400 block text-[10px]">Status Dermaga</span>
@@ -526,6 +543,42 @@
                         </div>
                     </div>
                 @endif
+
+                <!-- Panel 4: Quick Voyage Timeline Drawer / Summary -->
+                <div class="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-xs space-y-3">
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <span class="p-1 rounded bg-amber-50 text-amber-600">🧭</span>
+                            <h3 class="text-xs font-extrabold text-slate-900 tracking-tight">Progres Timeline Pelayaran</h3>
+                        </div>
+                        <a href="#timeline-section" class="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-0.5">
+                            Semua ({{ $selectedShipment->trackingEvents->count() }}) &darr;
+                        </a>
+                    </div>
+
+                    <div class="space-y-2 text-xs">
+                        @forelse($selectedShipment->trackingEvents->sortByDesc('event_time')->take(3) as $recentEvent)
+                            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 hover:bg-white transition">
+                                <div class="flex items-center justify-between gap-1 mb-1">
+                                    <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded {{ $recentEvent->event_type === 'ORIGIN' ? 'bg-emerald-100 text-emerald-800' : ($recentEvent->event_type === 'DESTINATION' || $recentEvent->event_type === 'DELIVERED' ? 'bg-purple-100 text-purple-800' : 'bg-amber-100 text-amber-800') }}">
+                                        {{ $recentEvent->event_type }}
+                                    </span>
+                                    <span class="text-[10px] font-mono text-slate-400">
+                                        {{ $recentEvent->event_time ? $recentEvent->event_time->format('d M H:i') : '-' }}
+                                    </span>
+                                </div>
+                                <div class="font-bold text-slate-800 text-[11px] truncate">
+                                    📍 {{ $recentEvent->location?->name ?? ($recentEvent->latitude ? 'Posisi Laut (' . number_format($recentEvent->latitude, 2) . '°, ' . number_format($recentEvent->longitude, 2) . '°)' : 'Laut Lepas') }}
+                                </div>
+                                <p class="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                                    {{ $recentEvent->description }}
+                                </p>
+                            </div>
+                        @empty
+                            <p class="text-[11px] text-slate-400 py-2 text-center">Belum ada rekaman timeline.</p>
+                        @endforelse
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -698,7 +751,7 @@
         @endif
 
         <!-- E.5 Tracking Timeline Section (Voyage Log) -->
-        <div class="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-xs space-y-5">
+        <div id="timeline-section" class="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-xs space-y-5">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                 <div>
                     <h3 class="text-base font-extrabold text-slate-900 tracking-tight">Kronologi Riwayat Perjalanan (Voyage Log Timeline)</h3>
@@ -718,12 +771,12 @@
             <div class="space-y-4 max-h-[600px] overflow-y-auto pr-2">
                 @forelse($selectedShipment->trackingEvents as $index => $event)
                     <div class="relative pl-7 pb-4 border-l-2 {{ $loop->last ? 'border-transparent' : 'border-blue-200' }}">
-                        <!-- Node Indicator -->
-                        <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full border-2 border-white {{ $event->event_type === 'ORIGIN' ? 'bg-emerald-500' : ($event->event_type === 'DESTINATION' ? 'bg-purple-600' : 'bg-blue-600') }} shadow-xs"></div>
+                        <!-- Node Indicator: Green for Origin, Purple for Dest/Delivered, Amber for Intermediate Waypoints -->
+                        <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full border-2 border-white {{ $event->event_type === 'ORIGIN' ? 'bg-emerald-500' : ($event->event_type === 'DESTINATION' || $event->event_type === 'DELIVERED' ? 'bg-purple-600' : 'bg-amber-500') }} shadow-xs"></div>
 
                         <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:bg-white hover:border-blue-300 transition shadow-2xs">
                             <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded {{ $event->event_type === 'ORIGIN' ? 'bg-emerald-100 text-emerald-800' : ($event->event_type === 'DESTINATION' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800') }}">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded {{ $event->event_type === 'ORIGIN' ? 'bg-emerald-100 text-emerald-800' : ($event->event_type === 'DESTINATION' || $event->event_type === 'DELIVERED' ? 'bg-purple-100 text-purple-800' : 'bg-amber-100 text-amber-800') }}">
                                     {{ $event->event_type ?? 'CHECKPOINT' }}
                                 </span>
                                 <span class="text-xs font-mono text-slate-500">
@@ -733,12 +786,12 @@
 
                             <div class="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
                                 <span>📍</span>
-                                <span>{{ $event->location_name ?? 'Laut Samudra (At Sea)' }}</span>
+                                <span>{{ $event->location?->name ?? ($event->latitude ? 'Posisi Laut (' . number_format($event->latitude, 2) . '°, ' . number_format($event->longitude, 2) . '°)' : 'Laut Lepas (At Sea)') }}</span>
                             </div>
 
-                            @if($event->notes)
+                            @if($event->description)
                                 <p class="text-xs text-slate-600 mt-1 leading-relaxed">
-                                    {{ $event->notes }}
+                                    {{ $event->description }}
                                 </p>
                             @endif
 
@@ -870,8 +923,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const originIcon = createIcon('#10b981', '⚓');
+        const waypointIcon = createIcon('#f59e0b', '📍');
         const vesselIcon = createIcon('#2563eb', '🚢');
-        const transitIcon = createIcon('#0284c7', '📍');
         const destIcon = createIcon('#9333ea', '🏁');
 
         const points = [];
@@ -889,19 +942,31 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         @endif
 
-        // 2. Add Tracking Events & Historical Checkpoints
+        // 2. Add Intermediate Tracking Waypoints
+        @php
+            $originLat = $selectedShipment->origin?->latitude;
+            $originLng = $selectedShipment->origin?->longitude;
+            $destLat = $selectedShipment->destination?->latitude;
+            $destLng = $selectedShipment->destination?->longitude;
+        @endphp
         @foreach($selectedShipment->trackingEvents as $ev)
             @if($ev->latitude && $ev->longitude)
-                points.push({
-                    lat: {{ $ev->latitude }},
-                    lng: {{ $ev->longitude }},
-                    title: "{{ $ev->location_name ?? 'At Sea' }}",
-                    type: '{{ $ev->event_type ?? "CHECKPOINT" }}',
-                    icon: '{{ $ev->event_type }}' === 'ORIGIN' ? originIcon : ('{{ $ev->event_type }}' === 'DESTINATION' ? destIcon : ('{{ $ev->event_type }}' === 'IN_TRANSIT' ? vesselIcon : transitIcon)),
-                    desc: "{{ $ev->notes ?? 'Waypoint pelayaran' }}",
-                    weather: "{{ $ev->weather_condition ? $ev->weather_condition . ($ev->weather_temp_c !== null ? ' (' . $ev->weather_temp_c . '°C)' : '') : '' }}",
-                    time: "{{ $ev->event_time ? $ev->event_time->format('d M Y, H:i') : '' }}"
-                });
+                @php
+                    $isAtOrigin = $originLat && abs($ev->latitude - $originLat) < 0.005 && abs($ev->longitude - $originLng) < 0.005;
+                    $isAtDest = $destLat && abs($ev->latitude - $destLat) < 0.005 && abs($ev->longitude - $destLng) < 0.005;
+                @endphp
+                @if(!$isAtOrigin && !$isAtDest && !in_array($ev->event_type, ['ORIGIN', 'DESTINATION']))
+                    points.push({
+                        lat: {{ $ev->latitude }},
+                        lng: {{ $ev->longitude }},
+                        title: "Waypoint: {{ $ev->location?->name ?? 'Titik Jalur Laut' }}",
+                        type: 'WAYPOINT',
+                        icon: waypointIcon,
+                        desc: "{{ addslashes($ev->description ?? 'Waypoint pelayaran') }}",
+                        weather: "{{ $ev->weather_condition ? $ev->weather_condition . ($ev->weather_temp_c !== null ? ' (' . $ev->weather_temp_c . '°C)' : '') : '' }}",
+                        time: "{{ $ev->event_time ? $ev->event_time->format('d M Y, H:i') : '' }}"
+                    });
+                @endif
             @endif
         @endforeach
 

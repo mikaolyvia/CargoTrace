@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\AuditLog;
 use App\Models\Shipment;
 use App\Models\ShipmentException;
 use App\Models\User;
@@ -18,6 +19,7 @@ class ShipmentExceptionSeeder extends Seeder
     public function run(): void
     {
         $operator = User::where('email', 'operator@cargotrace.com')->first();
+        $admin = User::where('email', 'admin@cargotrace.com')->first();
         $exceptionService = app(ExceptionService::class);
 
         // 1. Shipment CT-20261109-0002: WEATHER_DELAY (INVESTIGATING, MEDIUM, 18 hours impact)
@@ -86,6 +88,54 @@ class ShipmentExceptionSeeder extends Seeder
             $exceptionService->resolveException($ex9, [
                 'resolution_notes' => 'Import health inspection authority granted green seal clearance.',
             ], $operator);
+        }
+
+        // Seed staggered, realistic audit trail logs so they don't share identical timestamps
+        $auditTimes = [
+            Carbon::now()->subMinutes(11),
+            Carbon::now()->subHours(1)->subMinutes(35),
+            Carbon::now()->subHours(3)->subMinutes(18),
+            Carbon::now()->subHours(6)->subMinutes(42),
+            Carbon::now()->subHours(14),
+            Carbon::now()->subDays(1)->subHours(3),
+            Carbon::now()->subDays(2),
+        ];
+
+        $logs = AuditLog::orderBy('id', 'asc')->get();
+        foreach ($logs as $idx => $log) {
+            $assignedTime = $auditTimes[$idx % count($auditTimes)];
+            $entityId = $log->entity_id ?? (($idx + 1) * 2);
+            $entityType = $log->entity_type && $log->entity_type !== 'SYSTEM' ? $log->entity_type : Shipment::class;
+
+            $log->update([
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'created_at' => $assignedTime,
+                'updated_at' => $assignedTime,
+            ]);
+        }
+
+        // Ensure at least 6 diverse audit logs exist with proper user, entity, and varied times
+        if (AuditLog::count() < 6) {
+            $sampleActions = [
+                ['action' => 'STATUS_TRANSITION', 'entity' => Shipment::class, 'id' => 1, 'time' => Carbon::now()->subMinutes(18)],
+                ['action' => 'AIS_TELEMETRY_INGEST', 'entity' => Shipment::class, 'id' => 2, 'time' => Carbon::now()->subHours(1)->subMinutes(10)],
+                ['action' => 'EXCEPTION_REPORTED', 'entity' => ShipmentException::class, 'id' => 1, 'time' => Carbon::now()->subHours(4)],
+                ['action' => 'SHIPMENT_CREATED', 'entity' => Shipment::class, 'id' => 3, 'time' => Carbon::now()->subHours(8)],
+                ['action' => 'EXCEPTION_RESOLVED', 'entity' => ShipmentException::class, 'id' => 2, 'time' => Carbon::now()->subHours(15)],
+                ['action' => 'SECURITY_POLICY_CHECK', 'entity' => Shipment::class, 'id' => 5, 'time' => Carbon::now()->subDays(1)],
+            ];
+
+            foreach ($sampleActions as $act) {
+                AuditLog::create([
+                    'user_id' => $operator->id ?? $admin->id,
+                    'action' => $act['action'],
+                    'entity_type' => $act['entity'],
+                    'entity_id' => $act['id'],
+                    'created_at' => $act['time'],
+                    'updated_at' => $act['time'],
+                ]);
+            }
         }
     }
 }

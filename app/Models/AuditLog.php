@@ -40,4 +40,17 @@ class AuditLog extends Model
         }
         return $query;
     }
+
+    /**
+     * Backward-compatible alias accessors for polymorphic nomenclature.
+     */
+    public function getAuditableTypeAttribute(): ?string
+    {
+        return $this->entity_type;
+    }
+
+    public function getAuditableIdAttribute(): ?int
+    {
+        return $this->entity_id;
+    }
 }

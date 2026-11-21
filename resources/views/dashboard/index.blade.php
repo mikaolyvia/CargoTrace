@@ -92,7 +92,7 @@
     <!-- Card 3: Delivered -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:border-emerald-300 transition group">
         <div class="flex items-center justify-between text-slate-400 mb-2">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Bongkar Pelabuhan</span>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Delivered</span>
             <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm group-hover:scale-110 transition">
                 ⚓
             </div>
@@ -136,9 +136,9 @@
         <div>
             <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
-                <h2 class="text-lg font-black tracking-tight text-white">Live Maritime Fleet Telemetry</h2>
+                <h2 class="text-lg font-black tracking-tight text-white">Fleet Telemetry (Simulated AIS)</h2>
             </div>
-            <p class="text-xs text-slate-400 mt-0.5">Data koordinat pelayaran kapal disimulasikan melalui integrasi Python Collector / REST API (<code class="text-cyan-300">/api/integrations/vessel-positions</code>)</p>
+            <p class="text-xs text-slate-400 mt-0.5">Pembaruan koordinat kapal disimulasikan melalui scheduler berkala atau integrasi REST API (<code class="text-cyan-300">/api/integrations/vessel-positions</code>)</p>
         </div>
         <div>
             @if(!empty($metrics['summary']['latest_ais_sync']))
@@ -220,7 +220,7 @@
                 <canvas id="statusChart"></canvas>
             </div>
         </div>
-        <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-3 gap-2 text-[11px] text-slate-600">
+        <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px] text-slate-600">
             <div class="flex items-center gap-1.5">
                 <span class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
                 <span>Created ({{ $metrics['charts']['status_distribution']['CREATED'] ?? 0 }})</span>
@@ -240,10 +240,6 @@
             <div class="flex items-center gap-1.5">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
                 <span>Delivered ({{ $metrics['charts']['status_distribution']['DELIVERED'] ?? 0 }})</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-                <span class="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0"></span>
-                <span>Exceptions ({{ $metrics['summary']['open_exceptions'] ?? 0 }})</span>
             </div>
         </div>
     </div>
@@ -350,6 +346,20 @@
                     <option value="delayed" {{ ($filters['delay_status'] ?? '') === 'delayed' ? 'selected' : '' }}>Terlambat (Delayed Only)</option>
                     <option value="on_schedule" {{ ($filters['delay_status'] ?? '') === 'on_schedule' ? 'selected' : '' }}>Tepat Waktu (On Schedule)</option>
                 </select>
+            </div>
+
+            <!-- Date From -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Dari Tanggal (Date From)</label>
+                <input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}"
+                       class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 focus:outline-none focus:border-blue-500 text-xs">
+            </div>
+
+            <!-- Date To -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Sampai Tanggal (Date To)</label>
+                <input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}"
+                       class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 focus:outline-none focus:border-blue-500 text-xs">
             </div>
 
             <!-- Sorting -->
@@ -501,13 +511,8 @@
     </div>
 
     <!-- Server-Side Pagination Links -->
-    <div class="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="text-xs text-slate-500">
-            Menampilkan <span class="font-bold text-slate-800">{{ $metrics['shipments']->firstItem() ?? 0 }}</span> - <span class="font-bold text-slate-800">{{ $metrics['shipments']->lastItem() ?? 0 }}</span> dari <span class="font-bold text-slate-800">{{ $metrics['shipments']->total() }}</span> pengiriman kontainer
-        </div>
-        <div>
-            {{ $metrics['shipments']->links() }}
-        </div>
+    <div class="px-6 py-4 border-t border-slate-100">
+        {{ $metrics['shipments']->links() }}
     </div>
 </div>
 
@@ -525,7 +530,7 @@
                     <div>
                         <div class="font-bold text-slate-800 flex items-center gap-2">
                             <span class="px-1.5 py-0.5 rounded bg-slate-200 font-mono text-[10px] uppercase font-bold text-slate-700">{{ $log->action }}</span>
-                            <span>{{ $log->auditable_type ? class_basename($log->auditable_type) : 'System' }} #{{ $log->auditable_id }}</span>
+                            <span>{{ $log->entity_type && $log->entity_type !== 'SYSTEM' ? class_basename($log->entity_type) : 'Shipment' }} #{{ $log->entity_id ?? $log->id }}</span>
                         </div>
                         <p class="text-[11px] text-slate-500 mt-0.5">Oleh: {{ $log->user->name ?? 'System Worker' }} ({{ $log->user->role ?? 'DAEMON' }})</p>
                     </div>
@@ -584,9 +589,7 @@
                             '#6366f1', // BOOKED
                             '#3b82f6', // PICKED_UP
                             '#f59e0b', // IN_TRANSIT
-                            '#10b981', // DELIVERED
-                            '#a855f7', // EXCEPTION
-                            '#64748b'  // CANCELLED
+                            '#10b981'  // DELIVERED
                         ],
                         borderWidth: 2,
                         borderColor: '#ffffff'
@@ -614,7 +617,7 @@
             });
         }
 
-        // Carrier Bar Chart
+        // Carrier Bar Chart (Horizontal layout to prevent label collisions)
         const carrierCtx = document.getElementById('carrierChart');
         if (carrierCtx) {
             const carrierDist = @json($metrics['charts']['carrier_distribution']);
@@ -625,21 +628,33 @@
                     datasets: [{
                         label: 'Jumlah Kontainer',
                         data: Object.values(carrierDist),
-                        backgroundColor: '#2563eb',
-                        borderRadius: 8,
+                        backgroundColor: [
+                            '#2563eb', // Maersk
+                            '#059669', // Evergreen
+                            '#d97706', // MSC
+                            '#dc2626', // DHL
+                            '#7c3aed'  // SQC
+                        ],
+                        borderRadius: 6,
                         borderSkipped: false
                     }]
                 },
                 options: {
+                    indexAxis: 'y', // Horizontal bars prevent X-axis label collision
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 1 }
-                        },
                         x: {
-                            grid: { display: false }
+                            beginAtZero: true,
+                            ticks: { stepSize: 1, font: { size: 10 } },
+                            grid: { color: '#f1f5f9' }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: {
+                                font: { size: 11, weight: '600', family: 'Plus Jakarta Sans, sans-serif' },
+                                color: '#334155'
+                            }
                         }
                     },
                     plugins: {

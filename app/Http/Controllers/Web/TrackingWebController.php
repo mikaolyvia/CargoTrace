@@ -190,14 +190,24 @@ class TrackingWebController extends Controller
                 );
 
                 // Port Activity / Inbound Congestion metric
-                $inboundCount = Shipment::where('destination_id', $selectedShipment->destination_id)
-                    ->whereIn('current_status', ['IN_TRANSIT', 'BOOKED'])
+                $inboundVesselsQuery = Shipment::where('destination_id', $selectedShipment->destination_id)
+                    ->whereIn('current_status', ['CREATED', 'BOOKED', 'PICKED_UP', 'IN_TRANSIT'])
+                    ->whereNotNull('vessel_id');
+
+                $inboundVesselsCount = (clone $inboundVesselsQuery)->distinct('vessel_id')->count('vessel_id');
+                if ($inboundVesselsCount === 0 && $selectedShipment->vessel_id) {
+                    $inboundVesselsCount = 1;
+                }
+
+                $inboundShipmentsCount = Shipment::where('destination_id', $selectedShipment->destination_id)
+                    ->whereIn('current_status', ['CREATED', 'BOOKED', 'PICKED_UP', 'IN_TRANSIT'])
                     ->count();
 
                 $destinationPortActivity = [
-                    'inbound_vessels' => $inboundCount,
-                    'congestion_level' => $inboundCount > 5 ? 'High Congestion' : ($inboundCount > 2 ? 'Moderate' : 'Normal Traffic'),
-                    'status' => 'Operasional Normal (Open 24/7)',
+                    'inbound_vessels' => $inboundVesselsCount,
+                    'inbound_shipments' => $inboundShipmentsCount,
+                    'congestion_level' => $inboundVesselsCount > 3 ? 'Padat (High Traffic)' : ($inboundVesselsCount > 1 ? 'Moderat' : 'Lancar (Normal)'),
+                    'status' => 'Operasional Terbuka 24/7 (Open)',
                 ];
             }
 
@@ -218,13 +228,24 @@ class TrackingWebController extends Controller
                 }
             }
 
+            $isDelayed = $delayHours > 0 || (bool) $selectedShipment->is_delayed;
+
+            if ($isDelayed) {
+                $activeEx = $selectedShipment->exceptions->first();
+                $factorText = $activeEx ? "Terdeteksi kendala: {$activeEx->description}" : "Penyesuaian kecepatan navigasi laut & antrean alokasi dermaga transit";
+                $calculationReason = "Estimasi kedatangan terkini (" . ($estimatedArrival ? $estimatedArrival->format('d M Y, H:i') : '-') . ") melebihi jadwal awal (" . ($expectedArrival ? $expectedArrival->format('d M Y, H:i') : '-') . ") sebesar {$delayHours} jam. Klasifikasi: {$severity} (0–6j: LOW, 6–24j: MEDIUM, >24j: HIGH). Faktor: {$factorText}.";
+            } else {
+                $calculationReason = "Estimasi kedatangan terkini (" . ($estimatedArrival ? $estimatedArrival->format('d M Y, H:i') : '-') . ") berada dalam batas jadwal resmi (" . ($expectedArrival ? $expectedArrival->format('d M Y, H:i') : '-') . "). Pelayaran kapal berjalan sesuai kecepatan rata-rata operasional tanpa deviasi kritis.";
+            }
+
             $etaDetails = [
                 'expected_arrival' => $expectedArrival,
                 'estimated_arrival' => $estimatedArrival,
                 'delay_hours' => $delayHours,
                 'severity' => $severity,
-                'is_delayed' => $delayHours > 0 || (bool) $selectedShipment->is_delayed,
-                'difference_label' => $delayHours > 0 ? "+{$delayHours} Jam Keterlambatan ({$severity})" : "Sesuai Jadwal (On Schedule)",
+                'is_delayed' => $isDelayed,
+                'difference_label' => $isDelayed ? "+{$delayHours} Jam Terlambat ({$severity})" : "Sesuai Jadwal (On Schedule)",
+                'calculation_reason' => $calculationReason,
             ];
         }
 

@@ -282,8 +282,8 @@ class ShipmentSeeder extends Seeder
             ],
             [
                 'number' => 'CT-20261109-0012',
-                'container' => 'DHLU-1192834',
-                'carrier' => $dhl,
+                'container' => 'SQCU-1192834',
+                'carrier' => $sqc,
                 'vessel' => $vesselGulsun,
                 'origin' => $jakartaPort,
                 'destination' => $singaporePort,
@@ -389,8 +389,8 @@ class ShipmentSeeder extends Seeder
             ],
             [
                 'number' => 'CT-20261109-0017',
-                'container' => 'MSCU-7719284',
-                'carrier' => $msc,
+                'container' => 'SQCU-7719284',
+                'carrier' => $sqc,
                 'vessel' => $vesselGulsun,
                 'origin' => $shanghaiPort,
                 'destination' => $tokyoPort,
@@ -433,8 +433,8 @@ class ShipmentSeeder extends Seeder
             ],
             [
                 'number' => 'CT-20261109-0019',
-                'container' => 'DHLU-8839201',
-                'carrier' => $dhl,
+                'container' => 'EGLV-8839201',
+                'carrier' => $evergreen,
                 'vessel' => $vesselGiven,
                 'origin' => $singaporePort,
                 'destination' => $hamburgPort,

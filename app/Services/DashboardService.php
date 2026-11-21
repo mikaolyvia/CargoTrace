@@ -83,8 +83,8 @@ class DashboardService
             ? round(($openExceptionsCount / $totalShipments) * 100, 1)
             : 0.0;
 
-        // 1. Status Distribution (for Doughnut/Bar Chart)
-        $statuses = ['CREATED', 'BOOKED', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'EXCEPTION', 'CANCELLED'];
+        // 1. Status Distribution (for Doughnut/Bar Chart - 5 shipment statuses totaling 24)
+        $statuses = ['CREATED', 'BOOKED', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED'];
         $statusCounts = (clone $shipmentsQuery)
             ->select('current_status', DB::raw('count(*) as count'))
             ->groupBy('current_status')

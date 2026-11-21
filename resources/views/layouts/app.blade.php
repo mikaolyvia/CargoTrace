@@ -107,16 +107,16 @@
                         </svg>
                         <span>Peta Kapal & AIS</span>
                     </div>
-                    <span class="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> LIVE
+                    <span class="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 animate-pulse">
+                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> SIMULATED
                     </span>
                 </a>
 
                 <!-- Vessels Fleet -->
                 <a href="{{ route('dashboard') }}#vessels-section"
                    class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 17l1.5-9h15L21 17M3 17l2 4h14l2-4M3 17h18M6 8V4h4v4m4-4h4v4"/>
                     </svg>
                     <span>Armada Kapal (Fleet)</span>
                 </a>
@@ -203,9 +203,9 @@
             <!-- Header Status Pills & Actions -->
             <div class="flex items-center gap-4">
                 <!-- Status Telemetry AIS -->
-                <div class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-xs font-semibold">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>AIS Live Telemetry: <b>Active</b></span>
+                <div class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-50 text-cyan-800 border border-cyan-200/80 text-xs font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+                    <span>AIS Telemetry: <b>Simulated</b></span>
                 </div>
 
                 <!-- Status Marine Weather -->
