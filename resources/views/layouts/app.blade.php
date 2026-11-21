@@ -165,18 +165,68 @@
             </nav>
         </div>
 
-        <!-- User Profile Card in Sidebar Bottom -->
-        <div class="p-4 border-t border-slate-800 bg-slate-950/70">
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center font-bold text-white text-xs shadow">
-                    OP
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-xs font-bold text-white truncate">Logistics Dispatcher</p>
-                    <div class="flex items-center gap-1.5 mt-0.5">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                        <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">OPERATOR</span>
+        <!-- User Profile & Multi-Role Switcher in Sidebar Bottom -->
+        @php
+            $currentUser = Auth::user();
+            $roleName = $currentUser?->role ?? 'TAMU (GUEST)';
+            $initials = $currentUser ? strtoupper(substr($currentUser->name, 0, 2)) : 'GS';
+            $roleBadgeColor = match($currentUser?->role) {
+                'ADMIN' => 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+                'OPERATOR' => 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+                'CUSTOMER' => 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+                default => 'bg-slate-700 text-slate-300 border-slate-600',
+            };
+        @endphp
+        <div class="p-4 border-t border-slate-800 bg-slate-950/80 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center font-bold text-white text-[11px] shadow shrink-0">
+                        {{ $initials }}
                     </div>
+                    <div class="min-w-0">
+                        <p class="text-xs font-bold text-white truncate">{{ $currentUser?->name ?? 'Tamu (Guest)' }}</p>
+                        <span class="inline-block text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded border {{ $roleBadgeColor }}">
+                            {{ $roleName }}
+                        </span>
+                    </div>
+                </div>
+
+                @if($currentUser)
+                    <form action="{{ route('logout') }}" method="POST" title="Keluar / Logout">
+                        @csrf
+                        <button type="submit" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                            </svg>
+                        </button>
+                    </form>
+                @else
+                    <a href="{{ route('login') }}" class="text-[11px] font-bold text-cyan-400 hover:text-cyan-300">Login</a>
+                @endif
+            </div>
+
+            <!-- 1-Click Role Switcher for UAS Demo -->
+            <div class="pt-2 border-t border-slate-800/80">
+                <span class="text-[9px] uppercase font-bold tracking-wider text-slate-500 block mb-1.5">Ganti Akun Demo:</span>
+                <div class="grid grid-cols-3 gap-1">
+                    <form action="{{ route('auth.switch_role', 'admin') }}" method="POST">
+                        @csrf
+                        <button type="submit" title="Ganti ke Administrator" class="w-full py-1 text-[10px] font-bold rounded-lg border {{ $currentUser?->role === 'ADMIN' ? 'bg-purple-900/60 border-purple-500 text-purple-200' : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white' }} transition">
+                            🛡️ Admin
+                        </button>
+                    </form>
+                    <form action="{{ route('auth.switch_role', 'operator') }}" method="POST">
+                        @csrf
+                        <button type="submit" title="Ganti ke Logistics Operator" class="w-full py-1 text-[10px] font-bold rounded-lg border {{ $currentUser?->role === 'OPERATOR' ? 'bg-cyan-900/60 border-cyan-500 text-cyan-200' : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white' }} transition">
+                            🚢 Opr
+                        </button>
+                    </form>
+                    <form action="{{ route('auth.switch_role', 'customer') }}" method="POST">
+                        @csrf
+                        <button type="submit" title="Ganti ke Customer" class="w-full py-1 text-[10px] font-bold rounded-lg border {{ $currentUser?->role === 'CUSTOMER' ? 'bg-emerald-900/60 border-emerald-500 text-emerald-200' : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white' }} transition">
+                            👤 Cust
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -201,7 +251,7 @@
             </div>
 
             <!-- Header Status Pills & Actions -->
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
                 <!-- Status Telemetry AIS -->
                 <div class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-50 text-cyan-800 border border-cyan-200/80 text-xs font-semibold">
                     <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
@@ -211,24 +261,56 @@
                 <!-- Status Marine Weather -->
                 <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sky-50 text-sky-800 border border-sky-200/80 text-xs font-semibold">
                     <span>🌤️</span>
-                    <span>Open-Meteo Marine: <b>Connected</b></span>
+                    <span>Open-Meteo: <b>Connected</b></span>
                 </div>
 
                 <div class="h-6 w-px bg-slate-200"></div>
 
                 <!-- Direct Quick Action: Track Map -->
                 <a href="{{ route('tracking.map') }}"
-                   class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition cursor-pointer">
-                    <svg class="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                    </svg>
-                    <span>Buka Peta Pelayaran</span>
+                   class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs border border-blue-200 transition">
+                    <span>🗺️</span>
+                    <span>Peta Laut</span>
                 </a>
+
+                @if(Auth::check())
+                    <!-- User Info & Logout Button -->
+                    <div class="flex items-center gap-2">
+                        <div class="hidden md:flex flex-col text-right">
+                            <span class="text-xs font-bold text-slate-800 leading-tight">{{ Auth::user()->name }}</span>
+                            <span class="text-[10px] font-mono font-bold text-slate-400 uppercase">{{ Auth::user()->role }}</span>
+                        </div>
+                        <form action="{{ route('logout') }}" method="POST">
+                            @csrf
+                            <button type="submit" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 border border-slate-200 text-xs font-bold text-slate-600 transition flex items-center gap-1.5" title="Keluar / Ganti Akun">
+                                <span>🚪</span>
+                                <span>Logout</span>
+                            </button>
+                        </form>
+                    </div>
+                @else
+                    <a href="{{ route('login') }}" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center gap-1.5">
+                        <span>🔑</span>
+                        <span>Login</span>
+                    </a>
+                @endif
             </div>
         </header>
 
         <!-- Dynamic Main Scrollable Workspace -->
         <main class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 bg-slate-50/80">
+            @if(session('success'))
+                <div class="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                    <span>✅</span>
+                    <span>{{ session('success') }}</span>
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
+                    <span>⚠️</span>
+                    <span>{{ session('error') }}</span>
+                </div>
+            @endif
             @yield('content')
         </main>
     </div>

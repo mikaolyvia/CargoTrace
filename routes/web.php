@@ -1,9 +1,17 @@
 <?php
 
+use App\Http\Controllers\Web\AuthWebController;
 use App\Http\Controllers\Web\DashboardWebController;
 use App\Http\Controllers\Web\TrackingWebController;
 use Illuminate\Support\Facades\Route;
 
+// Authentication & Multi-Role Switching
+Route::get('/login', [AuthWebController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [AuthWebController::class, 'login'])->name('login.post');
+Route::match(['get', 'post'], '/logout', [AuthWebController::class, 'logout'])->name('logout');
+Route::post('/switch-role/{role}', [AuthWebController::class, 'switchRole'])->name('auth.switch_role');
+
+// Core Web Views
 Route::get('/', [DashboardWebController::class, 'index'])->name('home');
 Route::get('/dashboard', [DashboardWebController::class, 'index'])->name('dashboard');
 
