@@ -5,28 +5,77 @@
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
         <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
-            <span class="font-bold text-blue-600">CargoTrace</span>
+            <span class="font-bold text-blue-600">CargoTrace Global</span>
             <span>/</span>
-            <span>Maritime Visibility</span>
+            <span>Jaringan 50 Pelabuhan Dunia</span>
             <span>/</span>
-            <span class="text-slate-800 font-semibold">Overview</span>
+            <span class="text-slate-800 font-semibold">{{ Auth::user()->role ?? 'TAMU' }}</span>
         </div>
         <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            Global Ocean Freight & Fleet Operations
+            @if(Auth::check() && Auth::user()->isCustomer())
+                🚢 Portal Pelacakan Kargo & Kontainer Saya
+            @elseif(Auth::check() && Auth::user()->isOperator())
+                🚢 Pusat Kontrol Operasional & Disposisi Armada Maritim
+            @else
+                🌍 Global Ocean Freight & Enterprise Fleet Oversight
+            @endif
         </h1>
         <p class="text-xs text-slate-500 mt-0.5">
-            Pemantauan langsung pelayaran kapal kargo, kontainer intermodal, koordinat AIS, dan status cuaca pelabuhan.
+            @if(Auth::check() && Auth::user()->isCustomer())
+                Selamat datang, <b>{{ Auth::user()->name }}</b>. Memantau status pengiriman kargo pribadi Anda secara real-time dengan proteksi data terenkripsi.
+            @else
+                Pemantauan pelayaran kapal kargo, radar satelit AIS, jaringan 50 pelabuhan kontainer dunia, dan mitigasi keterlambatan rute laut.
+            @endif
         </p>
     </div>
 
     <!-- Quick Action / Status Badges -->
     <div class="flex items-center gap-2.5">
+        <a href="#maritime-glossary"
+           class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+            <span>📖</span>
+            <span>Panduan Istilah</span>
+        </a>
         <a href="{{ route('tracking.map') }}"
            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition group">
             <svg class="w-4 h-4 text-cyan-300 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
             </svg>
             <span>Buka Peta Pelayaran (AIS Map)</span>
+        </a>
+    </div>
+</div>
+
+<!-- Role Data Isolation & Privacy Information Banner -->
+<div class="p-4 rounded-2xl bg-gradient-to-r from-blue-900/90 via-slate-900 to-slate-950 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="flex items-center gap-3.5">
+        <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-cyan-400 border border-blue-400/30 flex items-center justify-center font-bold text-lg shrink-0">
+            @if(Auth::check() && Auth::user()->isCustomer()) 👤 @elseif(Auth::check() && Auth::user()->isOperator()) 🚢 @else 🛡️ @endif
+        </div>
+        <div>
+            <div class="flex items-center gap-2">
+                <h3 class="text-xs font-extrabold uppercase tracking-wider text-cyan-300">
+                    Mode Akses Pengguna: {{ Auth::user()->role ?? 'TAMU' }}
+                </h3>
+                <span class="text-[9px] px-2 py-0.2 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 font-bold">
+                    Isolasi Akses Aktif
+                </span>
+            </div>
+            <p class="text-xs text-slate-300 mt-0.5">
+                @if(Auth::check() && Auth::user()->isCustomer())
+                    Menampilkan <b>{{ $metrics['summary']['total_shipments'] }} kontainer</b> yang terdaftar atas nama perusahaan Anda. Data perusahaan kargo lain tidak dapat Anda akses demi menjaga privasi & rahasia dagang.
+                @elseif(Auth::check() && Auth::user()->isOperator())
+                    Menampilkan seluruh <b>{{ $metrics['summary']['total_shipments'] }} pengiriman operasional</b> lintas 50 pelabuhan global. Anda berwenang memantau AIS dan memperbarui status kargo.
+                @else
+                    Menampilkan ringkasan eksekutif seluruh <b>{{ $metrics['summary']['total_shipments'] }} pengiriman global</b> dengan total valuasi $ {{ number_format($metrics['summary']['total_cargo_valuation_usd'], 2) }} USD dan jejak audit kepatuhan.
+                @endif
+            </p>
+        </div>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+        <a href="{{ route('notifications.index') }}" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold transition flex items-center gap-1.5 border border-white/10">
+            <span>🔔</span>
+            <span>Lihat Notifikasi</span>
         </a>
     </div>
 </div>
@@ -516,57 +565,187 @@
     </div>
 </div>
 
-<!-- Exceptions & Audit Logs Grid -->
+<!-- Role Specific Panel: Notifications for Customer OR Audit Logs for Operator/Admin -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <!-- Operational Audit Log Feed -->
-    <div class="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-xs">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-extrabold text-slate-900 tracking-tight">Jejak Audit Aktivitas Terakhir</h3>
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sistem Keamanan</span>
-        </div>
-        <div class="space-y-3">
-            @forelse($metrics['recent_audit_logs'] as $log)
-                <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between text-xs">
-                    <div>
-                        <div class="font-bold text-slate-800 flex items-center gap-2">
-                            <span class="px-1.5 py-0.5 rounded bg-slate-200 font-mono text-[10px] uppercase font-bold text-slate-700">{{ $log->action }}</span>
-                            <span>{{ $log->entity_type && $log->entity_type !== 'SYSTEM' ? class_basename($log->entity_type) : 'Shipment' }} #{{ $log->entity_id ?? $log->id }}</span>
-                        </div>
-                        <p class="text-[11px] text-slate-500 mt-0.5">Oleh: {{ $log->user->name ?? 'System Worker' }} ({{ $log->user->role ?? 'DAEMON' }})</p>
-                    </div>
-                    <span class="text-[10px] text-slate-400 font-mono">{{ $log->created_at->diffForHumans() }}</span>
+    @if(Auth::check() && Auth::user()->isCustomer())
+        <!-- Customer View: My Recent Cargo Alerts -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-xs">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="p-1.5 rounded-lg bg-blue-50 text-blue-600">🔔</span>
+                    <h3 class="text-sm font-extrabold text-slate-900 tracking-tight">Pemberitahuan Terkini Kargo Anda</h3>
                 </div>
-            @empty
-                <p class="text-xs text-slate-400 text-center py-4">Belum ada aktivitas audit log.</p>
-            @endforelse
+                <a href="{{ route('notifications.index') }}" class="text-xs font-bold text-blue-600 hover:text-blue-800">
+                    Buka Semua &rarr;
+                </a>
+            </div>
+            <div class="space-y-3">
+                @forelse($metrics['recent_notifications'] as $notif)
+                    <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 flex items-start gap-3 text-xs">
+                        <span class="text-base shrink-0 mt-0.5">
+                            {{ $notif->type === 'WARNING' ? '⚠️' : ($notif->type === 'SUCCESS' ? '✅' : 'ℹ️') }}
+                        </span>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-slate-800">{{ $notif->title }}</div>
+                            <p class="text-[11px] text-slate-600 mt-0.5 leading-relaxed">{{ $notif->message }}</p>
+                            <span class="text-[10px] text-slate-400 mt-1 block">{{ $notif->created_at->diffForHumans() }}</span>
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-xs text-slate-400 text-center py-6">Belum ada notifikasi baru untuk pengiriman Anda.</p>
+                @endforelse
+            </div>
         </div>
-    </div>
+    @else
+        <!-- Admin & Operator View: Operational Audit Log Feed -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-xs">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="p-1.5 rounded-lg bg-purple-50 text-purple-600">🛡️</span>
+                    <h3 class="text-sm font-extrabold text-slate-900 tracking-tight">Jejak Audit Aktivitas Sistem Terkini</h3>
+                </div>
+                <a href="{{ route('audit.index') }}" class="text-xs font-bold text-purple-600 hover:text-purple-800">
+                    Buka Halaman Audit Trail &rarr;
+                </a>
+            </div>
+            <div class="space-y-3">
+                @forelse($metrics['recent_audit_logs'] as $log)
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between text-xs">
+                        <div>
+                            <div class="font-bold text-slate-800 flex items-center gap-2">
+                                <span class="px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 font-mono text-[10px] uppercase font-bold">{{ $log->action }}</span>
+                                <span>{{ $log->entity_type && $log->entity_type !== 'SYSTEM' ? class_basename($log->entity_type) : 'Shipment' }} #{{ $log->entity_id ?? $log->id }}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Oleh: {{ $log->user->name ?? 'System Worker' }} ({{ $log->user->role ?? 'DAEMON' }})</p>
+                        </div>
+                        <span class="text-[10px] text-slate-400 font-mono">{{ $log->created_at->diffForHumans() }}</span>
+                    </div>
+                @empty
+                    <p class="text-xs text-slate-400 text-center py-4">Belum ada aktivitas audit log.</p>
+                @endforelse
+            </div>
+        </div>
+    @endif
 
     <!-- Security & Compliance Policy Card -->
     <div class="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
         <div>
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-sm font-extrabold text-slate-900 tracking-tight">Kepatuhan Operasional Maritim</h3>
-                <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider font-mono">APPEND-ONLY AUDIT TRAIL</span>
+                <div class="flex items-center gap-2">
+                    <span class="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">🔒</span>
+                    <h3 class="text-sm font-extrabold text-slate-900 tracking-tight">Keamanan Data & Isolasi Multi-Tenant</h3>
+                </div>
+                <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider font-mono bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    RBAC SECURED
+                </span>
             </div>
             <div class="space-y-3 text-xs text-slate-600">
                 <div class="flex items-start gap-2.5">
                     <span class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">✓</span>
-                    <p><b class="text-slate-800">Append-Only Immutability:</b> Seluruh data peristiwa tracking kapal tidak dapat dihapus atau diubah secara bebas untuk menjaga integritas data logistik maritim.</p>
+                    <p><b class="text-slate-800">Isolasi Hak Akses Kargo:</b> Pelanggan hanya dapat melihat data kontainer miliknya sendiri. Data operasional internal dan manifes kargo pelanggan lain terlindungi.</p>
                 </div>
                 <div class="flex items-start gap-2.5">
                     <span class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">✓</span>
-                    <p><b class="text-slate-800">Aturan State Machine:</b> Transisi status (CREATED &rarr; BOOKED &rarr; PICKED_UP &rarr; IN_TRANSIT &rarr; DELIVERED) divalidasi ketat di sisi server.</p>
+                    <p><b class="text-slate-800">Peralihan Akun Terverifikasi:</b> Setiap pergantian sesi wajib melalui proses logout dan verifikasi kata sandi demi menjaga integritas privasi sesi.</p>
                 </div>
                 <div class="flex items-start gap-2.5">
                     <span class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">✓</span>
-                    <p><b class="text-slate-800">Integrasi Otomatis AIS & Open-Meteo:</b> Telemetri koordinat dan kondisi cuaca laut diperbarui secara otomatis via REST API tanpa input manual.</p>
+                    <p><b class="text-slate-800">Jaringan 50 Pelabuhan Global:</b> Terintegrasi dengan pelabuhan utama dunia di Asia, Timur Tengah, Eropa, Amerika, dan Afrika menggunakan standar UN/LOCODE.</p>
                 </div>
             </div>
         </div>
         <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>UAS Web Programming 2 - CargoTrace</span>
-            <span class="font-bold text-slate-700">Laravel 12 + MariaDB</span>
+            <span>CargoTrace Global Platform &copy; 2026</span>
+            <span class="font-bold text-slate-700">Multi-Role RBAC Enforced</span>
+        </div>
+    </div>
+</div>
+
+<!-- Maritime Glossary & Guide Section (Agar Pengguna Tidak Bingung) -->
+<div id="maritime-glossary" class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="p-2 rounded-xl bg-cyan-50 text-cyan-700 border border-cyan-100 text-lg">📚</span>
+                <h2 class="text-lg font-black text-slate-900 tracking-tight">Panduan & Glosarium Istilah Logistik Maritim</h2>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">
+                Penjelasan istilah teknis agar seluruh pengguna (Admin, Operator, dan Customer) memahami makna data pengiriman.
+            </p>
+        </div>
+        <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-600 w-fit">
+            Panduan Edukasi Pengguna
+        </span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Item 1: AIS -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+            <div class="flex items-center gap-2">
+                <span class="text-base">📡</span>
+                <h4 class="text-xs font-bold text-slate-900">AIS (Automatic Identification System)</h4>
+            </div>
+            <p class="text-[11px] text-slate-600 leading-relaxed">
+                Pemancar satelit dan radio kapal otomatis yang menyiarkan koordinat GPS, kecepatan (*knots*), dan arah haluan secara langsung ke stasiun darat dan satelit.
+            </p>
+        </div>
+
+        <!-- Item 2: ETA vs Expected Arrival -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+            <div class="flex items-center gap-2">
+                <span class="text-base">⏱️</span>
+                <h4 class="text-xs font-bold text-slate-900">ETA vs Jadwal Awal (Expected)</h4>
+            </div>
+            <p class="text-[11px] text-slate-600 leading-relaxed">
+                <b>Expected:</b> Jadwal kontrak saat pemesanan.<br>
+                <b>Estimated Time of Arrival (ETA):</b> Estimasi kedatangan terkini yang dikalkulasi otomatis sesuai kecepatan dan cuaca laut.
+            </p>
+        </div>
+
+        <!-- Item 3: UN/LOCODE -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+            <div class="flex items-center gap-2">
+                <span class="text-base">⚓</span>
+                <h4 class="text-xs font-bold text-slate-900">UN/LOCODE (Kode Pelabuhan PBB)</h4>
+            </div>
+            <p class="text-[11px] text-slate-600 leading-relaxed">
+                Standar PBB untuk lokasi pelabuhan 5 digit. Contoh: <b>IDJKT</b> (Jakarta Tanjung Priok), <b>SGSIN</b> (Singapura), <b>NLRTM</b> (Rotterdam), <b>CNSHA</b> (Shanghai).
+            </p>
+        </div>
+
+        <!-- Item 4: Delay Severity -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+            <div class="flex items-center gap-2">
+                <span class="text-base">⚠️</span>
+                <h4 class="text-xs font-bold text-slate-900">Tingkat Keterlambatan (Delay Severity)</h4>
+            </div>
+            <p class="text-[11px] text-slate-600 leading-relaxed">
+                • <b>Minor:</b> Deviasi &lt; 12 jam (wajar dalam pelayaran).<br>
+                • <b>Medium:</b> Deviasi 12–24 jam (misal antrean sandar).<br>
+                • <b>Major:</b> Deviasi &gt; 24 jam (badai atau inspeksi pabean).
+            </p>
+        </div>
+
+        <!-- Item 5: HS Code -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+            <div class="flex items-center gap-2">
+                <span class="text-base">📋</span>
+                <h4 class="text-xs font-bold text-slate-900">HS Code (Harmonized System)</h4>
+            </div>
+            <p class="text-[11px] text-slate-600 leading-relaxed">
+                Kode klasifikasi pabean internasional 6–8 digit yang mendefinisikan jenis komoditas kargo untuk kepabeanan dan penetapan tarif bea masuk.
+            </p>
+        </div>
+
+        <!-- Item 6: Port Congestion & Berthing -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+            <div class="flex items-center gap-2">
+                <span class="text-base">🏗️</span>
+                <h4 class="text-xs font-bold text-slate-900">Antrean Sandar (Port Congestion)</h4>
+            </div>
+            <p class="text-[11px] text-slate-600 leading-relaxed">
+                Kondisi saat dermaga pelabuhan penuh sehingga kapal harus menunggu di area labuh jangkar (*anchorage*) sebelum dapat membongkar kontainer.
+            </p>
         </div>
     </div>
 </div>
@@ -574,12 +753,43 @@
 <!-- Chart.js Initialization Script -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Status Doughnut Chart with Legend
+        // Status Doughnut Chart with Legend and Center Metric Text
         const statusCtx = document.getElementById('statusChart');
         if (statusCtx) {
             const statusDist = @json($metrics['charts']['status_distribution']);
+            const totalShipments = {{ (int) ($metrics['summary']['total_shipments'] ?? 0) }};
+
+            // Custom Chart.js Plugin to draw center number and label exactly in the doughnut hole
+            const centerTextPlugin = {
+                id: 'centerTextPlugin',
+                afterDraw(chart) {
+                    const { ctx, chartArea } = chart;
+                    if (!chartArea) return;
+
+                    const centerX = (chartArea.left + chartArea.right) / 2;
+                    const centerY = (chartArea.top + chartArea.bottom) / 2;
+
+                    ctx.save();
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+
+                    // Number (Total Count)
+                    ctx.font = '800 26px "Plus Jakarta Sans", system-ui, sans-serif';
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillText(String(totalShipments), centerX, centerY - 8);
+
+                    // Subtitle Label
+                    ctx.font = '700 9px "Plus Jakarta Sans", system-ui, sans-serif';
+                    ctx.fillStyle = '#64748b';
+                    ctx.fillText('TOTAL KARGO', centerX, centerY + 14);
+
+                    ctx.restore();
+                }
+            };
+
             new Chart(statusCtx, {
                 type: 'doughnut',
+                plugins: [centerTextPlugin],
                 data: {
                     labels: Object.keys(statusDist),
                     datasets: [{
@@ -592,7 +802,8 @@
                             '#10b981'  // DELIVERED
                         ],
                         borderWidth: 2,
-                        borderColor: '#ffffff'
+                        borderColor: '#ffffff',
+                        hoverOffset: 4
                     }]
                 },
                 options: {
@@ -607,12 +818,23 @@
                                 padding: 8,
                                 font: {
                                     size: 10,
-                                    family: 'Inter, sans-serif'
+                                    family: 'Plus Jakarta Sans, sans-serif',
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const percentage = totalShipments > 0 ? ((value / totalShipments) * 100).toFixed(1) : 0;
+                                    return ` ${label}: ${value} unit (${percentage}%)`;
                                 }
                             }
                         }
                     },
-                    cutout: '65%'
+                    cutout: '68%'
                 }
             });
         }

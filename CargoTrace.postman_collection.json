@@ -1,0 +1,635 @@
+{
+  "info": {
+    "_postman_id": "cargotrace-v2-collection-api",
+    "name": "CargoTrace REST API - Global Maritime Shipment Visibility",
+    "description": "Comprehensive Postman Collection for CargoTrace Global Shipment Visibility & Tracking Platform.\nWeb Programming 2 • UAS Final Project API Specification.\n\nCovers Authentication, Shipments Lifecycle, Tracking Events, Exceptions, Master Data (Carriers, Locations, Vessels), Telemetry Integrations, Notifications, and Audit Logs.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Register New Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"PT Samudera Logistik Baru\",\n  \"email\": \"partner@samudera.com\",\n  \"password\": \"password\",\n  \"password_confirmation\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["register"]
+            },
+            "description": "Registers a new customer account and automatically issues a Sanctum Bearer token."
+          }
+        },
+        {
+          "name": "Login (Administrator / Operator / Customer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('authToken', jsonData.token);",
+                  "    console.log('Sanctum Bearer token saved successfully');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@cargotrace.com\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["login"]
+            },
+            "description": "Authenticates user credentials and returns user details along with Sanctum Bearer token."
+          }
+        },
+        {
+          "name": "Get Current Authenticated User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user",
+              "host": ["{{baseUrl}}"],
+              "path": ["user"]
+            },
+            "description": "Returns profile and role of currently authenticated Sanctum user."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["logout"]
+            },
+            "description": "Revokes current active Sanctum API token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Shipments Management",
+      "item": [
+        {
+          "name": "List Shipments (Filters & Pagination)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments?status=IN_TRANSIT&per_page=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["shipments"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "IN_TRANSIT"
+                },
+                {
+                  "key": "carrier_id",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "CTG",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Fetches paginated list of shipments with multi-attribute filtering (Status, Carrier, Search, Date Range). Role-scoped for Customers."
+          }
+        },
+        {
+          "name": "Create Shipment (Manifest Booking)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tracking_number\": \"CTG-2026-TEST-999\",\n  \"customer_id\": 3,\n  \"carrier_id\": 1,\n  \"vessel_id\": 1,\n  \"origin_location_id\": 1,\n  \"destination_location_id\": 2,\n  \"cargo_type\": \"Electronics & Solar Cells\",\n  \"container_number\": \"MSKU9988771\",\n  \"weight_kg\": 18500,\n  \"volume_cbm\": 45.5,\n  \"total_declared_value\": 145000,\n  \"expected_departure\": \"2026-11-25T08:00:00Z\",\n  \"expected_arrival\": \"2026-12-05T18:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shipments",
+              "host": ["{{baseUrl}}"],
+              "path": ["shipments"]
+            },
+            "description": "Registers a new cargo shipment manifest. Requires Operator or Administrator role."
+          }
+        },
+        {
+          "name": "Get Shipment Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["shipments", "1"]
+            },
+            "description": "Retrieves comprehensive shipment details including carrier, origin/destination ports, vessel telemetry, and status history."
+          }
+        },
+        {
+          "name": "Update Shipment Information",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cargo_type\": \"High-Tech Semiconductors (Express)\",\n  \"weight_kg\": 19200,\n  \"volume_cbm\": 48.0,\n  \"total_declared_value\": 160000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shipments/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["shipments", "1"]
+            },
+            "description": "Updates non-status manifest attributes of a shipment."
+          }
+        },
+        {
+          "name": "Transition Shipment Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_TRANSIT\",\n  \"location_id\": 1,\n  \"notes\": \"Vessel departed Tanjung Priok container terminal berthing.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shipments/1/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["shipments", "1", "status"]
+            },
+            "description": "Executes state transition in strict compliance with business rules (CREATED -> BOOKED -> PICKED_UP -> IN_TRANSIT -> DELIVERED)."
+          }
+        },
+        {
+          "name": "Delete Shipment (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["shipments", "1"]
+            },
+            "description": "Soft-deletes a shipment. Restricted to Administrator role only."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Tracking Timeline & Events",
+      "item": [
+        {
+          "name": "Get Shipment Tracking Timeline",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/1/tracking",
+              "host": ["{{baseUrl}}"],
+              "path": ["shipments", "1", "tracking"]
+            },
+            "description": "Returns chronological append-only events for a shipment with coordinates, timestamps, and locations."
+          }
+        },
+        {
+          "name": "Append New Tracking Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_TRANSIT\",\n  \"location_id\": 1,\n  \"latitude\": -6.1018,\n  \"longitude\": 106.8841,\n  \"event_time\": \"2026-11-22T10:00:00Z\",\n  \"description\": \"Vessel cleared pilot boarding ground and entered outbound maritime shipping lane.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shipments/1/tracking",
+              "host": ["{{baseUrl}}"],
+              "path": ["shipments", "1", "tracking"]
+            },
+            "description": "Appends an immutable historical tracking event. Verifies temporal sequence against previous records."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Exception Management",
+      "item": [
+        {
+          "name": "List Exceptions for Shipment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/1/exceptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["shipments", "1", "exceptions"]
+            },
+            "description": "Lists operational disruptions (WEATHER, CUSTOMS_HOLD, PORT_CONGESTION, MECHANICAL) associated with a shipment."
+          }
+        },
+        {
+          "name": "Report New Exception",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"exception_type\": \"PORT_CONGESTION\",\n  \"severity\": \"MEDIUM\",\n  \"description\": \"High berth occupancy at destination port causing anchor queue delay of ~18 hours.\",\n  \"estimated_delay_hours\": 18.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shipments/1/exceptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["shipments", "1", "exceptions"]
+            },
+            "description": "Logs an operational exception and updates shipment ETA accordingly."
+          }
+        },
+        {
+          "name": "Investigate Exception",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Port authority dispatched pilot boat; vessel scheduled to dock within 6 hours.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exceptions/1/investigate",
+              "host": ["{{baseUrl}}"],
+              "path": ["exceptions", "1", "investigate"]
+            },
+            "description": "Marks exception status from OPEN to INVESTIGATING."
+          }
+        },
+        {
+          "name": "Resolve Exception",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resolution_notes\": \"Container safely unloaded at Berth 4 after congestion subsided.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exceptions/1/resolve",
+              "host": ["{{baseUrl}}"],
+              "path": ["exceptions", "1", "resolve"]
+            },
+            "description": "Resolves exception, records resolution timestamp and responsible operator."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Master Data",
+      "item": [
+        {
+          "name": "List Ocean Carriers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/carriers",
+              "host": ["{{baseUrl}}"],
+              "path": ["carriers"]
+            },
+            "description": "Retrieves registered shipping lines (Maersk, Evergreen, MSC, DHL, SQC)."
+          }
+        },
+        {
+          "name": "List Global Ports & Locations (50 Ports)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/locations",
+              "host": ["{{baseUrl}}"],
+              "path": ["locations"]
+            },
+            "description": "Lists 50 world premier container ports with UN/LOCODE and GPS coordinates."
+          }
+        },
+        {
+          "name": "List Ocean Fleet Vessels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vessels",
+              "host": ["{{baseUrl}}"],
+              "path": ["vessels"]
+            },
+            "description": "Retrieves container ships with IMO numbers, speed knots, heading, and current AIS status."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Notifications & Audit Logs",
+      "item": [
+        {
+          "name": "List System Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications"]
+            },
+            "description": "Fetches user notifications with unread counts."
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/1/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "1", "read"]
+            },
+            "description": "Marks a specific notification as read."
+          }
+        },
+        {
+          "name": "Get Audit Logs (Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audit-logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["audit-logs"]
+            },
+            "description": "Lists immutable regulatory audit log records. Returns 403 Forbidden for non-Admin users."
+          }
+        }
+      ]
+    }
+  ]
+}

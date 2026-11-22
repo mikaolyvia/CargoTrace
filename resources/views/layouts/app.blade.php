@@ -83,85 +83,237 @@
                 </a>
             </div>
 
-            <!-- Navigation Links -->
+            <!-- Navigation Links Tailored by Role -->
+            @php
+                $currentUser = Auth::user();
+                $unreadNotificationsCount = $currentUser ? \App\Models\Notification::where('user_id', $currentUser->id)->unread()->count() : 0;
+            @endphp
             <nav class="p-4 space-y-1.5 sidebar-scroll overflow-y-auto max-h-[calc(100vh-180px)] text-xs font-semibold">
-                <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500 px-3 pt-2 pb-1">
-                    Operasional Laut
-                </div>
-
-                <!-- Dashboard -->
-                <a href="{{ route('dashboard') }}"
-                   class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {{ request()->routeIs('dashboard', 'home') ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-                    </svg>
-                    <span>Dashboard Metrik</span>
-                </a>
-
-                <!-- Live AIS Fleet Map -->
-                <a href="{{ route('tracking.map') }}"
-                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('tracking.map', 'tracking.index', 'tracking.track') ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-                    <div class="flex items-center gap-3">
-                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
-                        </svg>
-                        <span>Peta Kapal & AIS</span>
+                @if($currentUser?->isCustomer())
+                    <!-- Customer View Navigation -->
+                    <div class="text-[10px] uppercase font-bold tracking-wider text-cyan-400 px-3 pt-2 pb-1">
+                        Portal Pelanggan Kargo
                     </div>
-                    <span class="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 animate-pulse">
-                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> SIMULATED
-                    </span>
-                </a>
 
-                <!-- Vessels Fleet -->
-                <a href="{{ route('dashboard') }}#vessels-section"
-                   class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 17l1.5-9h15L21 17M3 17l2 4h14l2-4M3 17h18M6 8V4h4v4m4-4h4v4"/>
-                    </svg>
-                    <span>Armada Kapal (Fleet)</span>
-                </a>
-
-                <!-- Shipments List -->
-                <a href="{{ route('dashboard') }}#shipments-table"
-                   class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                    </svg>
-                    <span>Pengiriman Kontainer</span>
-                </a>
-
-                <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500 px-3 pt-4 pb-1">
-                    Kontrol & Audit
-                </div>
-
-                <!-- Exceptions -->
-                <a href="{{ route('dashboard') }}"
-                   class="flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
-                    <div class="flex items-center gap-3">
-                        <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    <!-- Customer My Cargo -->
+                    <a href="{{ route('dashboard') }}"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {{ request()->routeIs('dashboard', 'home') ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                        <svg class="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                         </svg>
-                        <span>Gangguan (Exceptions)</span>
+                        <span>Kargo & Kontainer Saya</span>
+                    </a>
+
+                    <!-- Tracking Map -->
+                    <a href="{{ route('tracking.map') }}"
+                       class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('tracking.map', 'tracking.index', 'tracking.track') ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                            </svg>
+                            <span>Peta Pelacakan Kargo</span>
+                        </div>
+                    </a>
+
+                    <!-- Customer Notifications -->
+                    <a href="{{ route('notifications.index') }}"
+                       class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('notifications.*') ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            <span>Notifikasi Kargo</span>
+                        </div>
+                        @if($unreadNotificationsCount > 0)
+                            <span class="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black">
+                                {{ $unreadNotificationsCount }}
+                            </span>
+                        @endif
+                    </a>
+
+                    <!-- Maritime Glossary Guide -->
+                    <a href="{{ route('dashboard') }}#maritime-glossary"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span>Panduan & Glosarium</span>
+                    </a>
+
+                @elseif($currentUser?->isOperator())
+                    <!-- Logistics Operator Navigation -->
+                    <div class="text-[10px] uppercase font-bold tracking-wider text-cyan-400 px-3 pt-2 pb-1">
+                        Pusat Kontrol Operasional
                     </div>
-                </a>
 
-                <!-- Notifications -->
-                <a href="{{ route('dashboard') }}"
-                   class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                    </svg>
-                    <span>Notifikasi Sistem</span>
-                </a>
+                    <!-- Dashboard -->
+                    <a href="{{ route('dashboard') }}"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {{ request()->routeIs('dashboard', 'home') ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                        </svg>
+                        <span>Dashboard Operasional</span>
+                    </a>
 
-                <!-- Audit Logs -->
-                <a href="{{ route('dashboard') }}"
-                   class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <span>Jejak Audit</span>
-                </a>
+                    <!-- Live AIS Fleet Map -->
+                    <a href="{{ route('tracking.map') }}"
+                       class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('tracking.map', 'tracking.index', 'tracking.track') ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                            </svg>
+                            <span>Peta Kapal & AIS Radar</span>
+                        </div>
+                        <span class="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
+                            LIVE
+                        </span>
+                    </a>
+
+                    <!-- Vessels Fleet -->
+                    <a href="{{ route('dashboard') }}#vessels-section"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 17l1.5-9h15L21 17M3 17l2 4h14l2-4M3 17h18M6 8V4h4v4m4-4h4v4"/>
+                        </svg>
+                        <span>Armada Kapal (Fleet)</span>
+                    </a>
+
+                    <!-- Shipments List -->
+                    <a href="{{ route('dashboard') }}#shipments-table"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                        </svg>
+                        <span>Manajemen Pengiriman</span>
+                    </a>
+
+                    <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500 px-3 pt-4 pb-1">
+                        Disposisi & Peringatan
+                    </div>
+
+                    <!-- Exceptions -->
+                    <a href="{{ route('dashboard') }}#exceptions-section"
+                       class="flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <span>Pusat Gangguan</span>
+                        </div>
+                    </a>
+
+                    <!-- Notifications -->
+                    <a href="{{ route('notifications.index') }}"
+                       class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('notifications.*') ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            <span>Notifikasi Operasional</span>
+                        </div>
+                        @if($unreadNotificationsCount > 0)
+                            <span class="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black">
+                                {{ $unreadNotificationsCount }}
+                            </span>
+                        @endif
+                    </a>
+
+                    <!-- Audit Logs for Operator -->
+                    <a href="{{ route('audit.index') }}"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {{ request()->routeIs('audit.*') ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                        <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span>Jejak Audit</span>
+                    </a>
+
+                @else
+                    <!-- Admin & Global Navigation -->
+                    <div class="text-[10px] uppercase font-bold tracking-wider text-purple-400 px-3 pt-2 pb-1">
+                        Pusat Kendali Eksekutif
+                    </div>
+
+                    <!-- Dashboard -->
+                    <a href="{{ route('dashboard') }}"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {{ request()->routeIs('dashboard', 'home') ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                        </svg>
+                        <span>Dashboard Eksekutif</span>
+                    </a>
+
+                    <!-- Live AIS Fleet Map -->
+                    <a href="{{ route('tracking.map') }}"
+                       class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('tracking.map', 'tracking.index', 'tracking.track') ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                            </svg>
+                            <span>Peta Maritim Global</span>
+                        </div>
+                        <span class="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                            GLOBAL
+                        </span>
+                    </a>
+
+                    <!-- Vessels Fleet -->
+                    <a href="{{ route('dashboard') }}#vessels-section"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 17l1.5-9h15L21 17M3 17l2 4h14l2-4M3 17h18M6 8V4h4v4m4-4h4v4"/>
+                        </svg>
+                        <span>Armada Kapal Global</span>
+                    </a>
+
+                    <!-- Shipments List -->
+                    <a href="{{ route('dashboard') }}#shipments-table"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                        </svg>
+                        <span>Semua Pengiriman Kargo</span>
+                    </a>
+
+                    <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500 px-3 pt-4 pb-1">
+                        Sistem & Kepatuhan
+                    </div>
+
+                    <!-- Exceptions -->
+                    <a href="{{ route('dashboard') }}#exceptions-section"
+                       class="flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <span>Pusat Gangguan</span>
+                        </div>
+                    </a>
+
+                    <!-- Notifications -->
+                    <a href="{{ route('notifications.index') }}"
+                       class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('notifications.*') ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            <span>Notifikasi Sistem</span>
+                        </div>
+                        @if($unreadNotificationsCount > 0)
+                            <span class="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black">
+                                {{ $unreadNotificationsCount }}
+                            </span>
+                        @endif
+                    </a>
+
+                    <!-- Audit Logs -->
+                    <a href="{{ route('audit.index') }}"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {{ request()->routeIs('audit.*') ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                        <svg class="w-4 h-4 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span>Jejak Audit Sistem (Audit Trail)</span>
+                    </a>
+                @endif
             </nav>
         </div>
 
@@ -281,10 +433,72 @@
                 <a href="{{ route('tracking.map') }}"
                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs border border-blue-200 transition">
                     <span>🗺️</span>
-                    <span>Peta Laut</span>
+                    <span>Peta Laut Global</span>
                 </a>
 
                 @if(Auth::check())
+                    @php
+                        $headerNotifications = \App\Models\Notification::where('user_id', Auth::id())->orderByDesc('created_at')->limit(5)->get();
+                    @endphp
+                    <!-- Interactive Notification Bell with Dropdown -->
+                    <div class="relative">
+                        <button type="button" onclick="toggleNotifDropdown()" id="notif-bell-btn" class="relative p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition" title="Notifikasi Saya">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            @if($unreadNotificationsCount > 0)
+                                <span class="absolute top-1 right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center animate-pulse">
+                                    {{ $unreadNotificationsCount }}
+                                </span>
+                            @endif
+                        </button>
+
+                        <!-- Notification Dropdown Menu -->
+                        <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden">
+                            <div class="p-3.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-xs text-slate-800">Notifikasi Sistem</span>
+                                    @if($unreadNotificationsCount > 0)
+                                        <span class="px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
+                                            {{ $unreadNotificationsCount }} baru
+                                        </span>
+                                    @endif
+                                </div>
+                                @if($unreadNotificationsCount > 0)
+                                    <form action="{{ route('notifications.read_all') }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="text-[11px] font-bold text-blue-600 hover:text-blue-800">
+                                            Tandai semua dibaca
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+
+                            <div class="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+                                @forelse($headerNotifications as $hNotif)
+                                    <div class="p-3 hover:bg-slate-50 transition flex items-start gap-2.5 {{ $hNotif->read_at === null ? 'bg-blue-50/40' : '' }}">
+                                        <span class="text-base shrink-0 mt-0.5">
+                                            {{ $hNotif->type === 'WARNING' ? '⚠️' : ($hNotif->type === 'ERROR' ? '🚨' : ($hNotif->type === 'SUCCESS' ? '✅' : 'ℹ️')) }}
+                                        </span>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-xs font-bold text-slate-800 truncate">{{ $hNotif->title }}</p>
+                                            <p class="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{{ $hNotif->message }}</p>
+                                            <span class="text-[10px] text-slate-400 mt-1 block">{{ $hNotif->created_at->diffForHumans() }}</span>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="p-4 text-center text-xs text-slate-400">
+                                        Tidak ada notifikasi baru.
+                                    </div>
+                                @endforelse
+                            </div>
+
+                            <a href="{{ route('notifications.index') }}" class="block p-3 text-center bg-slate-50 hover:bg-slate-100 text-xs font-bold text-blue-600 border-t border-slate-100 transition">
+                                Buka Pusat Notifikasi Lengkap &rarr;
+                            </a>
+                        </div>
+                    </div>
+
                     <!-- User Info & Logout Button -->
                     <div class="flex items-center gap-2">
                         <div class="hidden md:flex flex-col text-right">
@@ -331,5 +545,22 @@
             @yield('content')
         </main>
     </div>
+
+    <!-- Interactive Dropdown Script -->
+    <script>
+        function toggleNotifDropdown() {
+            const dropdown = document.getElementById('notif-dropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('hidden');
+            }
+        }
+        document.addEventListener('click', function(e) {
+            const btn = document.getElementById('notif-bell-btn');
+            const dropdown = document.getElementById('notif-dropdown');
+            if (dropdown && btn && !btn.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    </script>
 </body>
 </html>

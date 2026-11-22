@@ -11,6 +11,35 @@ class AuthApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_register_succeeds_with_valid_input(): void
+    {
+        $response = $this->postJson('/api/register', [
+            'name' => 'PT Global Logistics Baru',
+            'email' => 'newcustomer@cargotrace.com',
+            'password' => 'SecurePass123!',
+            'phone' => '+628123456789',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'message' => 'User registered successfully.',
+                'data' => [
+                    'user' => [
+                        'name' => 'PT Global Logistics Baru',
+                        'email' => 'newcustomer@cargotrace.com',
+                        'role' => 'CUSTOMER',
+                    ],
+                ],
+            ]);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'newcustomer@cargotrace.com',
+            'role' => 'CUSTOMER',
+        ]);
+        $this->assertNotEmpty($response->json('data.token'));
+    }
+
     public function test_login_succeeds_with_valid_credentials(): void
     {
         $user = User::factory()->create([

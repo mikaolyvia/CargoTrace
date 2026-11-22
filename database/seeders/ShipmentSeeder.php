@@ -563,11 +563,25 @@ class ShipmentSeeder extends Seeder
             ],
         ];
 
-        foreach ($shipmentsData as $data) {
+        $customer1 = User::where('email', 'customer@cargotrace.com')->first();
+        $customer2 = User::where('email', 'client.maritime@cargotrace.com')->first() ?? $customer1;
+        $customer3 = User::where('email', 'asia.freight@cargotrace.com')->first() ?? $customer1;
+
+        foreach ($shipmentsData as $index => $data) {
+            // Assign distinct customer ownership for strict RBAC multi-tenant data isolation:
+            // Customer 1 (PT Global Niaga Nusantara - customer@cargotrace.com) owns 7 shipments.
+            // Customer 2 (PT Samudera Perkasa) owns 8 shipments.
+            // Customer 3 (Trans-Pacific Freight) owns 9 shipments.
+            $assignedCustomer = match ($index) {
+                0, 1, 2, 6, 10, 14, 19 => $customer1,
+                3, 4, 7, 8, 12, 15, 17, 21 => $customer2,
+                default => $customer3,
+            };
+
             $shipment = Shipment::updateOrCreate(
                 ['shipment_number' => $data['number']],
                 [
-                    'customer_id' => $customer->id,
+                    'customer_id' => $assignedCustomer->id,
                     'created_by' => $operator->id,
                     'carrier_id' => $data['carrier']?->id,
                     'vessel_id' => $data['vessel']?->id,

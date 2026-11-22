@@ -23,7 +23,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// Public Authentication Endpoints (Strictly no public registration)
+// Public Authentication Endpoints
+Route::post('/register', [AuthController::class, 'register'])->name('api.register');
 Route::post('/login', [AuthController::class, 'login'])->name('api.login');
 
 // Protected API Endpoints
