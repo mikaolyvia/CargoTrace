@@ -14,9 +14,15 @@ class AuthWebController extends Controller
     /**
      * Show the application login form.
      */
-    public function showLoginForm(): View|RedirectResponse
+    public function showLoginForm(Request $request): View|RedirectResponse
     {
+        if (Auth::check()) {
+            return redirect()->route('dashboard')
+                ->with('info', 'Anda saat ini sedang login sebagai ' . Auth::user()->name . ' (' . Auth::user()->role . '). Silakan logout terlebih dahulu untuk beralih atau masuk sebagai pengguna lain.');
+        }
+
         return view('auth.login', [
+            'prefilledEmail' => $request->query('email', ''),
             'users' => [
                 'admin' => User::where('role', 'ADMIN')->first(),
                 'operator' => User::where('role', 'OPERATOR')->first(),
@@ -30,6 +36,13 @@ class AuthWebController extends Controller
      */
     public function login(Request $request): RedirectResponse
     {
+        // Jika sebelumnya masih ada sesi aktif, bersihkan terlebih dahulu demi keamanan
+        if (Auth::check()) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
@@ -41,16 +54,17 @@ class AuthWebController extends Controller
             $request->session()->regenerate();
 
             return redirect()->intended(route('dashboard'))
-                ->with('success', 'Selamat datang kembali, ' . Auth::user()->name . '!');
+                ->with('success', 'Verifikasi berhasil. Selamat datang kembali, ' . Auth::user()->name . ' (' . Auth::user()->role . ')!');
         }
 
         return back()->withErrors([
-            'email' => 'Email atau kata sandi yang Anda masukkan tidak sesuai.',
+            'email' => 'Verifikasi gagal: Email atau kata sandi yang Anda masukkan tidak sesuai.',
         ])->onlyInput('email');
     }
 
     /**
-     * Quick switch between demo roles (Admin, Operator, Customer).
+     * Beralih peran / pengguna secara aman dengan mewajibkan logout terlebih dahulu
+     * agar kredensial pengguna baru diverifikasi melalui form login.
      */
     public function switchRole(Request $request, string $role): RedirectResponse
     {
@@ -64,11 +78,13 @@ class AuthWebController extends Controller
             return back()->with('error', "Pengguna dengan peran {$role} tidak ditemukan.");
         }
 
-        Auth::login($targetUser);
-        $request->session()->regenerate();
+        // Wajib logout sesi saat ini agar sistem memverifikasi identitas pengguna baru
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-        return redirect()->back()
-            ->with('success', "Beralih akun ke: {$targetUser->name} ({$targetUser->role})");
+        return redirect()->route('login', ['email' => $targetUser->email])
+            ->with('info', "Sesi sebelumnya telah keluar. Silakan masukkan kata sandi untuk memverifikasi akun {$targetUser->name} ({$targetUser->role}) demi menjaga privasi dan keamanan.");
     }
 
     /**

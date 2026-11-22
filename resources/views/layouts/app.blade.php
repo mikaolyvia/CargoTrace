@@ -205,29 +205,40 @@
                 @endif
             </div>
 
-            <!-- 1-Click Role Switcher for UAS Demo -->
+            <!-- Secure Account Switcher (Enforces Logout & Identity Verification) -->
             <div class="pt-2 border-t border-slate-800/80">
-                <span class="text-[9px] uppercase font-bold tracking-wider text-slate-500 block mb-1.5">Ganti Akun Demo:</span>
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[9px] uppercase font-bold tracking-wider text-slate-400">Ganti Akun (Verifikasi):</span>
+                    <span class="text-[8px] font-bold text-amber-300 bg-amber-950/80 border border-amber-800/80 px-1 py-0.2 rounded flex items-center gap-0.5">
+                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                        Wajib Logout
+                    </span>
+                </div>
                 <div class="grid grid-cols-3 gap-1">
-                    <form action="{{ route('auth.switch_role', 'admin') }}" method="POST">
+                    <form action="{{ route('auth.switch_role', 'admin') }}" method="POST" onsubmit="return confirm('Untuk menjaga keamanan & privasi, sistem akan me-logout sesi ini dan meminta verifikasi kata sandi Administrator. Lanjutkan?');">
                         @csrf
-                        <button type="submit" title="Ganti ke Administrator" class="w-full py-1 text-[10px] font-bold rounded-lg border {{ $currentUser?->role === 'ADMIN' ? 'bg-purple-900/60 border-purple-500 text-purple-200' : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white' }} transition">
+                        <button type="submit" title="Logout & Verifikasi Login Administrator" class="w-full py-1 text-[10px] font-bold rounded-lg border {{ $currentUser?->role === 'ADMIN' ? 'bg-purple-900/60 border-purple-500 text-purple-200 ring-1 ring-purple-500/40' : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white hover:border-purple-500/60' }} transition">
                             🛡️ Admin
                         </button>
                     </form>
-                    <form action="{{ route('auth.switch_role', 'operator') }}" method="POST">
+                    <form action="{{ route('auth.switch_role', 'operator') }}" method="POST" onsubmit="return confirm('Untuk menjaga keamanan & privasi, sistem akan me-logout sesi ini dan meminta verifikasi kata sandi Logistics Operator. Lanjutkan?');">
                         @csrf
-                        <button type="submit" title="Ganti ke Logistics Operator" class="w-full py-1 text-[10px] font-bold rounded-lg border {{ $currentUser?->role === 'OPERATOR' ? 'bg-cyan-900/60 border-cyan-500 text-cyan-200' : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white' }} transition">
+                        <button type="submit" title="Logout & Verifikasi Login Logistics Operator" class="w-full py-1 text-[10px] font-bold rounded-lg border {{ $currentUser?->role === 'OPERATOR' ? 'bg-cyan-900/60 border-cyan-500 text-cyan-200 ring-1 ring-cyan-500/40' : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white hover:border-cyan-500/60' }} transition">
                             🚢 Opr
                         </button>
                     </form>
-                    <form action="{{ route('auth.switch_role', 'customer') }}" method="POST">
+                    <form action="{{ route('auth.switch_role', 'customer') }}" method="POST" onsubmit="return confirm('Untuk menjaga keamanan & privasi, sistem akan me-logout sesi ini dan meminta verifikasi kata sandi Customer. Lanjutkan?');">
                         @csrf
-                        <button type="submit" title="Ganti ke Customer" class="w-full py-1 text-[10px] font-bold rounded-lg border {{ $currentUser?->role === 'CUSTOMER' ? 'bg-emerald-900/60 border-emerald-500 text-emerald-200' : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white' }} transition">
+                        <button type="submit" title="Logout & Verifikasi Login Customer" class="w-full py-1 text-[10px] font-bold rounded-lg border {{ $currentUser?->role === 'CUSTOMER' ? 'bg-emerald-900/60 border-emerald-500 text-emerald-200 ring-1 ring-emerald-500/40' : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white hover:border-emerald-500/60' }} transition">
                             👤 Cust
                         </button>
                     </form>
                 </div>
+                <p class="text-[9px] text-slate-400 mt-1.5 leading-tight">
+                    Sistem otomatis logout & memverifikasi identitas pengguna saat beralih akun.
+                </p>
             </div>
         </div>
     </aside>
@@ -299,6 +310,12 @@
 
         <!-- Dynamic Main Scrollable Workspace -->
         <main class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 bg-slate-50/80">
+            @if(session('info'))
+                <div class="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold flex items-center gap-2">
+                    <span>ℹ️</span>
+                    <span>{{ session('info') }}</span>
+                </div>
+            @endif
             @if(session('success'))
                 <div class="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
                     <span>✅</span>
